@@ -167,18 +167,25 @@ raison de se placer en son milieu.
 
 ## Ce que la lumière fait, et ne fait pas, au PLA marbré
 
-| niveau | blanc | objet (moy / p99) | S/B objet | profondeur remplie | bruit de profondeur |
-|:--|--:|--:|--:|--:|--:|
-| haut (PWM 200) | 142 | 167 / 182 | 133 | 100 % | 0,14 mm |
-| moyen (PWM 60) | 65 | 78 / 84 | 82 | 100 % | 0,17 mm |
-| bas (PWM 21) | 18 | 25 / 29 | 32 | 100 % | 0,23 mm |
+| niveau | blanc | objet (moy / p99) | S/B objet | face du cube remplie | bruit sur la face | scène entière remplie |
+|:--|--:|--:|--:|--:|--:|--:|
+| haut (PWM 200) | 142 | 167 / 182 | 133 | 100 % | 0,14 mm | 54,9 % |
+| moyen (PWM 60) | 65 | 78 / 84 | 82 | 100 % | 0,17 mm | 48,9 % |
+| bas (PWM 21) | 18 | 25 / 29 | 32 | 100 % | 0,23 mm | 34,0 % |
 
-**Le PLA marbré ne se dégrade pratiquement pas.** Même 4 diaphragmes plus bas, la
-face du cube reste reconstruite à 100 % et le bruit ne fait que passer de 0,14 à
-0,23 mm. C'est un résultat, pas un échec de la méthode : ce matériau est mat, clair
-et fortement texturé, soit le cas le plus favorable pour la stéréo passive. L'effet
-attendu de la lumière devra se lire sur le **translucide** (peu de retour stéréo) et
-sur l'**argenté** (spéculaire, écrêtage local).
+**La face du cube ne se dégrade pratiquement pas** : 4 diaphragmes plus bas, elle
+reste reconstruite à 100 % et le bruit ne fait que passer de 0,14 à 0,23 mm. Ce
+matériau est mat, clair et fortement texturé — le cas le plus favorable pour la
+stéréo passive.
+
+**Mais la scène entière, elle, perd un tiers de sa profondeur** (54,9 % à 34,0 %).
+L'effet de la lumière est donc bien réel ; il se concentre simplement sur les zones
+peu contrastées, celles où la stéréo passive manque de texture à apparier. Les deux
+colonnes sont à conserver dans le jeu de données : la première dit ce que devient la
+surface visée, la seconde ce que devient tout le reste.
+
+L'effet attendu sur la surface visée devrait apparaître avec le **translucide** (peu
+de retour stéréo) et l'**argenté** (spéculaire, écrêtage local).
 
 Lumière parasite mesurée à PWM 0 : **0,78 / 255**. La pièce est noire, le zéro du
 variateur est un vrai zéro.
