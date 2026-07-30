@@ -9,8 +9,8 @@
     },
     "dictionary": "DICT_4X4_50",
     "turntable_center": [
-        339,
-        304
+        341.14351534119055,
+        340.3196817093198
     ],
     "invert_colors": true,
     "adaptive_thresh_constant": 11,

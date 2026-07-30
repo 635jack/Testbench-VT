@@ -37,10 +37,12 @@ class ArUcoTracker:
     """
     Gestionnaire de flux vidéo et d'estimation d'angle par marqueurs ArUco.
     """
-    def __init__(self, config_path="aruco_config.json", simulation=False, camera_id=0):
+    def __init__(self, config_path="aruco_config.json", simulation=False, camera_id=0,
+                 exposure="default"):
         self.config_path = config_path
         self.simulation = simulation
         self.camera_id = camera_id
+        self.exposure = self.DEFAULT_EXPOSURE if exposure == "default" else exposure
         
         self.dict_name = "DICT_4X4_50"
         self.marker_angles = {
@@ -266,11 +268,21 @@ class ArUcoTracker:
 
         return self._generate_simulated_frame(), None, None, None
 
+    #: Exposition imposée, en microsecondes. L'automatisme se règle sur
+    #: l'objet clair posé sur le plateau et **surexpose les marqueurs** : le
+    #: PLA blanc sature et noie le motif noir. Mesuré sur le banc, en
+    #: 640x480 : aucun marqueur détecté en automatique, deux à partir d'une
+    #: exposition figée entre 1500 et 6000. Mettre à ``None`` pour retrouver
+    #: le comportement automatique.
+    DEFAULT_EXPOSURE = 4000
+
     def lock_exposure_and_white_balance(self, warmup_sec=1.5):
         """
-        Laisse l'exposition automatique et la balance des blancs s'ajuster
-        pendant `warmup_sec` secondes, puis verrouille (fixe) leurs valeurs
-        pour garantir une cohérence parfaite de la luminosité sur toute la session.
+        Fige l'exposition et la balance des blancs pour toute la session.
+
+        Si ``self.exposure`` est défini, cette valeur est imposée au lieu de
+        celle trouvée par l'automatisme — sans quoi la détection ArUco échoue
+        dès qu'un objet clair occupe le champ.
         """
         if self.rs_pipeline is None or rs is None:
             return
@@ -279,10 +291,19 @@ class ArUcoTracker:
             logging.info(f"[Camera] Préchauffage et ajustement automatique ({warmup_sec}s)...")
             t0 = time.time()
             while time.time() - t0 < warmup_sec:
-                self.rs_pipeline.wait_for_frames(timeout_ms=1000)
+                self.rs_pipeline.wait_for_frames(timeout_ms=2000)
+        except Exception as e:
+            logging.warning(f"[Camera] Préchauffage incomplet : {e}")
 
+        try:
             # Parcourir les capteurs (Depth & Color) pour désactiver les modes auto
             for sensor in self.rs_device.query_sensors():
+                if self.exposure is not None and sensor.supports(rs.option.exposure):
+                    sensor.set_option(rs.option.enable_auto_exposure, 0)
+                    sensor.set_option(rs.option.exposure, float(self.exposure))
+                    logging.info(f"[Camera] Exposition imposée à {self.exposure} sur "
+                                 f"{sensor.get_info(rs.camera_info.name)}")
+                    continue
                 if sensor.supports(rs.option.enable_auto_exposure):
                     sensor.set_option(rs.option.enable_auto_exposure, 0)
                     logging.info(f"[Camera] Auto-exposition désactivée et figée sur {sensor.get_info(rs.camera_info.name)}")
@@ -586,7 +607,10 @@ class ArUcoTracker:
     def draw_overlay(self, frame, current_angle, target_angle=None, status="IDLE"):
         """Incruste les éléments graphiques sur l'image OpenCV."""
         h, w = frame.shape[:2]
+        # Le centre peut être en flottants — la calibration par trajectoire
+        # l'estime au dixième de pixel — alors que le dessin exige des entiers.
         cx, cy = self.turntable_center if self.turntable_center else (w // 2, h // 2)
+        cx, cy = int(round(cx)), int(round(cy))
         
         # Calcul du rayon moyen basé sur le centre réel
         radius = 180

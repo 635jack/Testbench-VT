@@ -44,7 +44,12 @@ class TurntablePositionController:
         self.last_angle = None
         self.last_angle_time = None
         self.angular_velocity_deg_per_sec = 0.0
-        self.braking_latency_sec = 0.12  # Temps de latence d'émission IR + inertie (~120ms)
+        # Temps entre l'ordre d'arrêt et l'immobilisation réelle. Ce n'est pas
+        # la latence d'émission IR mais la roue libre du plateau, mesurée à la
+        # caméra : environ 15° parcourus à 13°/s, soit 1,2 s. La valeur de
+        # 0,12 s freinait dix fois trop tard et produisait un dépassement
+        # systématique de +9° sur chaque consigne.
+        self.braking_latency_sec = 0.45
         self._velocity_stable_since = 0.0  # Timestamp quand la vitesse est devenue ~0
         
         # 2-stage fine positioning control
@@ -99,6 +104,10 @@ class TurntablePositionController:
         """Définit la consigne d'angle absolue (0..360°)."""
         self.target_angle = angle_deg % 360.0
         self.status = self.STATE_SEARCHING
+        # Réarmer la réduction de vitesse à chaque consigne est indispensable :
+        # le plateau reprend sa vitesse maximale dès qu'il s'arrête et repart.
+        # Sans ce réarmement, les consignes suivantes s'exécutent à 46°/s et
+        # dérivent de 45 à 145° — mesuré.
         self._speed_minimized = False
         self.nudge_count = 0
         logging.info(f"[Asservissement] Nouvelle consigne d'angle : {self.target_angle:.1f}° (Tolérance cible: {self.tolerance_deg:.1f}°)")
@@ -231,7 +240,11 @@ class TurntablePositionController:
             annotated_frame = self.tracker.draw_overlay(frame, current_angle, self.target_angle, self.status)
             return annotated_frame, current_angle
 
-        # Réduire la vitesse au minimum dès qu'un déplacement commence
+        # Réduire la vitesse au minimum dès qu'un déplacement commence.
+        # Attention : VITESSE_MOINS **démarre** le plateau, dans la derniere
+        # direction utilisee. C'est ce qui rend la premiere consigne d'une
+        # serie imprecise, le sens n'etant pas encore fixe. Deplacer cet appel
+        # apres l'ordre de direction a ete essaye et degrade le regime etabli.
         if not self._speed_minimized:
             self._set_minimum_speed()
 
@@ -255,13 +268,22 @@ class TurntablePositionController:
 
             if self.status not in (self.STATE_MOVING_CW, self.STATE_MOVING_CCW):
                 if (now - self.last_command_time) > self._command_interval:
-                    # Utiliser ensure_rotating avec feedback ArUco
+                    # Toujours émettre l'ordre de direction, même si le plateau
+                    # tourne déjà.
+                    #
+                    # VITESSE_MOINS **démarre** le plateau, dans la dernière
+                    # direction utilisée. `_set_minimum_speed` le met donc en
+                    # rotation juste avant ce test : en s'abstenant « puisqu'il
+                    # tourne déjà », on le laissait partir dans le sens de la
+                    # consigne précédente — une fois sur deux le mauvais. C'est
+                    # ce qui rendait la première consigne de chaque série
+                    # fausse de -19 à -34°, les suivantes étant correctes.
                     if not self.is_physically_rotating():
                         if desired_cw:
-                            logging.info(f"[Asservissement] Écart {error:+.1f}° -> Lancement Rotation DROITE (CW) à vitesse min.")
+                            logging.info(f"[Asservissement] Écart {error:+.1f}° -> Rotation DROITE (CW) à vitesse min.")
                             self.turntable.rotation_droite()
                         else:
-                            logging.info(f"[Asservissement] Écart {error:+.1f}° -> Lancement Rotation GAUCHE (CCW) à vitesse min.")
+                            logging.info(f"[Asservissement] Écart {error:+.1f}° -> Rotation GAUCHE (CCW) à vitesse min.")
                             self.turntable.rotation_gauche()
                     else:
                         logging.info(f"[Asservissement] Plateau déjà en rotation (ArUco: {self.angular_velocity_deg_per_sec:.1f}°/s).")
