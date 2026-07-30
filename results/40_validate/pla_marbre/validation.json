@@ -1,0 +1,277 @@
+{
+  "object": "pla_marbre",
+  "profile": {
+    "camera": {
+      "exposure_us": 2200,
+      "gain": 16,
+      "white_balance_k": 5180,
+      "auto_exposure": false,
+      "auto_white_balance": false,
+      "power_line_frequency": 0,
+      "brightness": 0,
+      "contrast": 50,
+      "gamma": 300,
+      "hue": 0,
+      "saturation": 64,
+      "sharpness": 50
+    },
+    "resolution": [
+      640,
+      480
+    ],
+    "fps": 30,
+    "levels": [
+      {
+        "name": "haut",
+        "pwm": 200
+      },
+      {
+        "name": "moyen",
+        "pwm": 60
+      },
+      {
+        "name": "bas",
+        "pwm": 21
+      }
+    ],
+    "pose_frame": {
+      "pwm": 35,
+      "exposure_us": 2200,
+      "markers_mean": 1.44,
+      "markers_max": 2,
+      "markers_ever": "1|6",
+      "white_mean_lum": 36.5731201171875
+    },
+    "ev_step": 2.0,
+    "measured_ev_gaps": [
+      2.017977605248484
+    ],
+    "exposure_clip_limit_us": 3000,
+    "headroom_ev": 0.5,
+    "criteria": {
+      "clip_frac_max": 0.001,
+      "p99_max": 240.0,
+      "min_snr_white": 20.0
+    },
+    "candidates": {
+      "1.0": {
+        "pwm": [
+          200,
+          108,
+          60
+        ],
+        "measured_ev_gaps": [
+          1.0044201479195485,
+          1.0106610992907221
+        ],
+        "snr_white_low": 61.43507088647426,
+        "white_lum_low": 64.51707458496094,
+        "clip_frac_high": 0.0,
+        "p99_high": 182.0,
+        "depth_fill_high": 1.0,
+        "depth_fill_low": 1.0,
+        "markers_mean_low": 0.3333333333333333
+      },
+      "1.5": {
+        "pwm": [
+          200,
+          80,
+          35
+        ],
+        "measured_ev_gaps": [
+          1.5118613544604833,
+          1.5094931529787188
+        ],
+        "snr_white_low": 33.49902687358799,
+        "white_lum_low": 36.54323196411133,
+        "clip_frac_high": 0.0,
+        "p99_high": 182.0,
+        "depth_fill_high": 1.0,
+        "depth_fill_low": 1.0,
+        "markers_mean_low": 1.3333333333333333
+      },
+      "2.0": {
+        "pwm": [
+          200,
+          60,
+          21
+        ],
+        "measured_ev_gaps": [
+          2.017977605248484
+        ],
+        "snr_white_low": 24.02343662298252,
+        "white_lum_low": 17.793903350830078,
+        "clip_frac_high": 0.0,
+        "p99_high": 182.0,
+        "depth_fill_high": 1.0,
+        "depth_fill_low": 1.0,
+        "markers_mean_low": 1.5333333333333334
+      }
+    },
+    "provenance": {
+      "response": "/home/openclaw-vm/VT-Light/results/20_response/response.json",
+      "masks": "/home/openclaw-vm/VT-Light/results/masks.npz"
+    }
+  },
+  "masks_info": {
+    "white_source": "marqueurs ArUco",
+    "white_n_markers": 2,
+    "white_n_px": 605,
+    "white_from_separate_frame": true,
+    "object_n_px": 20346
+  },
+  "metrics": [
+    {
+      "white_mean_b": 139.8032989501953,
+      "white_mean_g": 140.6462860107422,
+      "white_mean_r": 143.24462890625,
+      "white_mean_lum": 141.32708740234375,
+      "white_r_over_g": 1.0184743404388428,
+      "white_b_over_g": 0.994006335735321,
+      "white_neutrality_err": 0.018474340438842773,
+      "white_clipped_frac": 0.0,
+      "white_p99": 150.0,
+      "object_mean_b": 161.0416259765625,
+      "object_mean_g": 165.5233917236328,
+      "object_mean_r": 171.10281372070312,
+      "object_mean_lum": 166.68072509765625,
+      "object_r_over_g": 1.0337077379226685,
+      "object_b_over_g": 0.9729236960411072,
+      "object_neutrality_err": 0.03370773792266846,
+      "object_clipped_frac": 0.0,
+      "object_p99": 182.0,
+      "frame_mean_lum": 21.00281524658203,
+      "frame_sat_frac": 0.0,
+      "noise_white": 1.0127395391464233,
+      "noise_object": 1.2563276290893555,
+      "snr_white": 139.54929371224094,
+      "snr_object": 132.67297577342478,
+      "markers_mean": 0.06666666666666667,
+      "markers_max": 1,
+      "markers_ever": "1",
+      "depth_fill_object": 1.0,
+      "depth_rms_object_mm": 0.13857697385090217,
+      "depth_median_mm": 121.69999692559941,
+      "depth_fill_frame": 0.5494010416666667,
+      "level": "haut",
+      "pwm": 200,
+      "object": "pla_marbre",
+      "exposure_us": 2200
+    },
+    {
+      "white_mean_b": 61.02975082397461,
+      "white_mean_g": 64.22148895263672,
+      "white_mean_r": 64.00495910644531,
+      "white_mean_lum": 63.792884826660156,
+      "white_r_over_g": 0.9966284036636353,
+      "white_b_over_g": 0.9503011107444763,
+      "white_neutrality_err": 0.04969888925552368,
+      "white_clipped_frac": 0.0,
+      "white_p99": 68.96000000000004,
+      "object_mean_b": 72.00108337402344,
+      "object_mean_g": 78.8135757446289,
+      "object_mean_r": 78.33269500732422,
+      "object_mean_lum": 77.8931655883789,
+      "object_r_over_g": 0.9938985109329224,
+      "object_b_over_g": 0.9135619401931763,
+      "object_neutrality_err": 0.08643805980682373,
+      "object_clipped_frac": 0.0,
+      "object_p99": 84.0,
+      "frame_mean_lum": 7.842624664306641,
+      "frame_sat_frac": 0.0,
+      "noise_white": 1.1008124351501465,
+      "noise_object": 0.9488738179206848,
+      "snr_white": 57.95073056016037,
+      "snr_object": 82.09012001097274,
+      "markers_mean": 0.3333333333333333,
+      "markers_max": 1,
+      "markers_ever": "1|6",
+      "depth_fill_object": 1.0,
+      "depth_rms_object_mm": 0.1720573522627297,
+      "depth_median_mm": 121.69999692559941,
+      "depth_fill_frame": 0.48944010416666667,
+      "level": "moyen",
+      "pwm": 60,
+      "object": "pla_marbre",
+      "exposure_us": 2200
+    },
+    {
+      "white_mean_b": 15.145454406738281,
+      "white_mean_g": 19.056198120117188,
+      "white_mean_r": 15.765289306640625,
+      "white_mean_lum": 17.626392364501953,
+      "white_r_over_g": 0.8273049592971802,
+      "white_b_over_g": 0.7947782874107361,
+      "white_neutrality_err": 0.20522171258926392,
+      "white_clipped_frac": 0.0,
+      "white_p99": 21.0,
+      "object_mean_b": 20.689176559448242,
+      "object_mean_g": 26.310331344604492,
+      "object_mean_r": 24.641551971435547,
+      "object_mean_lum": 25.17055320739746,
+      "object_r_over_g": 0.9365731477737427,
+      "object_b_over_g": 0.78635174036026,
+      "object_neutrality_err": 0.21364825963974,
+      "object_clipped_frac": 0.0,
+      "object_p99": 29.0,
+      "frame_mean_lum": 2.5541110038757324,
+      "frame_sat_frac": 0.0,
+      "noise_white": 0.7608598470687866,
+      "noise_object": 0.7836900353431702,
+      "snr_white": 23.166411570288073,
+      "snr_object": 32.117995728216094,
+      "markers_mean": 1.8,
+      "markers_max": 2,
+      "markers_ever": "1|6",
+      "depth_fill_object": 1.0,
+      "depth_rms_object_mm": 0.23301850259389298,
+      "depth_median_mm": 121.99999691802077,
+      "depth_fill_frame": 0.34015625,
+      "level": "bas",
+      "pwm": 21,
+      "object": "pla_marbre",
+      "exposure_us": 2200
+    },
+    {
+      "white_mean_b": 33.44628143310547,
+      "white_mean_g": 37.39008331298828,
+      "white_mean_r": 35.211570739746094,
+      "white_mean_lum": 36.28911590576172,
+      "white_r_over_g": 0.941735565662384,
+      "white_b_over_g": 0.8945227861404419,
+      "white_neutrality_err": 0.1054772138595581,
+      "white_clipped_frac": 0.0,
+      "white_p99": 41.0,
+      "object_mean_b": 43.5204963684082,
+      "object_mean_g": 49.02147674560547,
+      "object_mean_r": 48.31647491455078,
+      "object_mean_lum": 48.183570861816406,
+      "object_r_over_g": 0.985618531703949,
+      "object_b_over_g": 0.8877843022346497,
+      "object_neutrality_err": 0.11221569776535034,
+      "object_clipped_frac": 0.0,
+      "object_p99": 53.0,
+      "frame_mean_lum": 4.765379905700684,
+      "frame_sat_frac": 0.0,
+      "noise_white": 1.0458663702011108,
+      "noise_object": 0.9200236201286316,
+      "snr_white": 34.697660178884654,
+      "snr_object": 52.372101984816105,
+      "markers_mean": 1.48,
+      "markers_max": 2,
+      "markers_ever": "1|6",
+      "depth_fill_object": 1.0,
+      "depth_rms_object_mm": 0.16701858826590057,
+      "depth_median_mm": 121.89999692054698,
+      "depth_fill_frame": 0.414296875,
+      "level": "pose",
+      "pwm": 35,
+      "object": "pla_marbre",
+      "exposure_us": 2200
+    }
+  ],
+  "verdict": {
+    "clips_at_top": false,
+    "headroom_ev": 0.48655879666016155
+  }
+}

@@ -1,0 +1,92 @@
+{
+  "camera_readback": {
+    "enable_auto_exposure": 0.0,
+    "enable_auto_white_balance": 0.0,
+    "exposure": 4000.0,
+    "gain": 16.0,
+    "white_balance": 4600.0,
+    "power_line_frequency": 0.0,
+    "brightness": 0.0,
+    "contrast": 50.0,
+    "gamma": 300.0,
+    "hue": 0.0,
+    "saturation": 64.0,
+    "sharpness": 50.0
+  },
+  "intrinsics": {
+    "fx": 392.54669189453125,
+    "fy": 391.958984375,
+    "cx": 312.88916015625,
+    "cy": 246.73666381835938,
+    "width": 640,
+    "height": 480,
+    "model": "distortion.inverse_brown_conrady",
+    "coeffs": [
+      -0.05204598605632782,
+      0.05467115342617035,
+      -0.0003269458538852632,
+      0.0008772885776124895,
+      -0.01756712794303894
+    ],
+    "depth_scale": 9.999999747378752e-05
+  },
+  "depth_scale": 9.999999747378752e-05,
+  "settings_drift": {},
+  "pwm_probe": {
+    "0": {
+      "pwm": 0,
+      "mean_lum": 0.7751786708831787,
+      "sat_frac": 0.0,
+      "markers": 0,
+      "noise": 0.3618346154689789,
+      "depth_fill": 0.0018098958333333333
+    },
+    "64": {
+      "pwm": 64,
+      "mean_lum": 12.8781156539917,
+      "sat_frac": 0.0,
+      "markers": 0,
+      "noise": 0.5375155806541443,
+      "depth_fill": 0.5463411458333334
+    },
+    "128": {
+      "pwm": 128,
+      "mean_lum": 22.869808197021484,
+      "sat_frac": 0.0,
+      "markers": 0,
+      "noise": 0.7429141998291016,
+      "depth_fill": 0.5546744791666667
+    },
+    "192": {
+      "pwm": 192,
+      "mean_lum": 32.48960494995117,
+      "sat_frac": 0.024739583333333332,
+      "markers": 1,
+      "noise": 0.9406240582466125,
+      "depth_fill": 0.5502864583333333
+    },
+    "255": {
+      "pwm": 255,
+      "mean_lum": 34.17949295043945,
+      "sat_frac": 0.029251302083333333,
+      "markers": 1,
+      "noise": 0.9228576421737671,
+      "depth_fill": 0.5458854166666667
+    }
+  },
+  "pwm_effective": true,
+  "pwm_inverted": false,
+  "white_reference": {
+    "source": "marqueurs ArUco",
+    "n_markers": 1,
+    "n_px": 271,
+    "mean_b": 222.24354553222656,
+    "mean_g": 201.1180877685547,
+    "mean_r": 194.8450164794922,
+    "mean_lum": 201.65074157714844,
+    "r_over_g": 0.9688090085983276,
+    "b_over_g": 1.1050400733947754,
+    "neutrality_err": 0.10504007339477539,
+    "clipped_frac": 0.0
+  }
+}

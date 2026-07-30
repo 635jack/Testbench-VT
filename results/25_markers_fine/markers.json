@@ -1,0 +1,156 @@
+{
+  "best": {
+    "sweep": "pwm",
+    "pwm": 21,
+    "exposure_us": 2200,
+    "white_mean_lum": 17.86851692199707,
+    "markers_mean": 1.64,
+    "markers_max": 2,
+    "markers_ever": "1|6"
+  },
+  "dead_band_white_lum": [
+    7.55949592590332,
+    14.417787551879883
+  ],
+  "ids_ever_seen": [
+    1,
+    6
+  ],
+  "curve": [
+    {
+      "sweep": "pwm",
+      "pwm": 12,
+      "exposure_us": 2200,
+      "white_mean_lum": 7.55949592590332,
+      "markers_mean": 0.0,
+      "markers_max": 0,
+      "markers_ever": ""
+    },
+    {
+      "sweep": "pwm",
+      "pwm": 15,
+      "exposure_us": 2200,
+      "white_mean_lum": 10.510327339172363,
+      "markers_mean": 0.0,
+      "markers_max": 0,
+      "markers_ever": ""
+    },
+    {
+      "sweep": "pwm",
+      "pwm": 18,
+      "exposure_us": 2200,
+      "white_mean_lum": 14.417787551879883,
+      "markers_mean": 0.0,
+      "markers_max": 0,
+      "markers_ever": ""
+    },
+    {
+      "sweep": "pwm",
+      "pwm": 21,
+      "exposure_us": 2200,
+      "white_mean_lum": 17.86851692199707,
+      "markers_mean": 1.64,
+      "markers_max": 2,
+      "markers_ever": "1|6"
+    },
+    {
+      "sweep": "pwm",
+      "pwm": 25,
+      "exposure_us": 2200,
+      "white_mean_lum": 24.111352920532227,
+      "markers_mean": 1.36,
+      "markers_max": 2,
+      "markers_ever": "1|6"
+    },
+    {
+      "sweep": "exposure",
+      "pwm": 200,
+      "exposure_us": 200,
+      "white_mean_lum": 30.257919311523438,
+      "markers_mean": 1.12,
+      "markers_max": 2,
+      "markers_ever": "1|6"
+    },
+    {
+      "sweep": "pwm",
+      "pwm": 30,
+      "exposure_us": 2200,
+      "white_mean_lum": 30.299144744873047,
+      "markers_mean": 1.12,
+      "markers_max": 2,
+      "markers_ever": "1|6"
+    },
+    {
+      "sweep": "exposure",
+      "pwm": 200,
+      "exposure_us": 200,
+      "white_mean_lum": 30.509679794311523,
+      "markers_mean": 1.32,
+      "markers_max": 2,
+      "markers_ever": "1|6"
+    },
+    {
+      "sweep": "pwm",
+      "pwm": 35,
+      "exposure_us": 2200,
+      "white_mean_lum": 36.749908447265625,
+      "markers_mean": 1.56,
+      "markers_max": 2,
+      "markers_ever": "1|6"
+    },
+    {
+      "sweep": "pwm",
+      "pwm": 40,
+      "exposure_us": 2200,
+      "white_mean_lum": 43.106327056884766,
+      "markers_mean": 1.56,
+      "markers_max": 2,
+      "markers_ever": "1|6"
+    },
+    {
+      "sweep": "pwm",
+      "pwm": 45,
+      "exposure_us": 2200,
+      "white_mean_lum": 49.23927307128906,
+      "markers_mean": 1.44,
+      "markers_max": 2,
+      "markers_ever": "1|6"
+    },
+    {
+      "sweep": "exposure",
+      "pwm": 200,
+      "exposure_us": 400,
+      "white_mean_lum": 51.57190704345703,
+      "markers_mean": 1.04,
+      "markers_max": 2,
+      "markers_ever": "1|6"
+    },
+    {
+      "sweep": "exposure",
+      "pwm": 200,
+      "exposure_us": 400,
+      "white_mean_lum": 51.70637893676758,
+      "markers_mean": 1.2,
+      "markers_max": 2,
+      "markers_ever": "1|6"
+    },
+    {
+      "sweep": "exposure",
+      "pwm": 200,
+      "exposure_us": 400,
+      "white_mean_lum": 52.074031829833984,
+      "markers_mean": 0.84,
+      "markers_max": 2,
+      "markers_ever": "1|6"
+    },
+    {
+      "sweep": "pwm",
+      "pwm": 50,
+      "exposure_us": 2200,
+      "white_mean_lum": 54.33457946777344,
+      "markers_mean": 0.92,
+      "markers_max": 2,
+      "markers_ever": "1|6"
+    }
+  ]
+}

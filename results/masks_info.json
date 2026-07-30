@@ -1,0 +1,39 @@
+{
+  "white_source": "marqueurs ArUco",
+  "white_n_markers": 1,
+  "white_n_px": 277,
+  "white_from_separate_frame": true,
+  "object_n_px": 20347,
+  "reference": {
+    "pwm": 255,
+    "exposure_us": 4000,
+    "gain": 16,
+    "white_balance_k": 5180
+  },
+  "marker_reference": {
+    "pwm": 255,
+    "exposure_us": 4000
+  },
+  "white_stats": {
+    "n_px": 277,
+    "mean_b": 211.2490997314453,
+    "mean_g": 205.28880310058594,
+    "mean_r": 213.4440460205078,
+    "mean_lum": 208.40670776367188,
+    "r_over_g": 1.039725661277771,
+    "b_over_g": 1.0290336608886719,
+    "neutrality_err": 0.039725661277770996,
+    "clipped_frac": 0.0
+  },
+  "object_stats": {
+    "n_px": 20347,
+    "mean_b": 248.0120391845703,
+    "mean_g": 251.2925262451172,
+    "mean_r": 250.51609802246094,
+    "mean_lum": 250.68638610839844,
+    "r_over_g": 0.9969102740287781,
+    "b_over_g": 0.9869455695152283,
+    "neutrality_err": 0.013054430484771729,
+    "clipped_frac": 0.6018577677298864
+  }
+}

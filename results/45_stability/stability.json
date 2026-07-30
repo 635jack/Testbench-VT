@@ -1,0 +1,33 @@
+{
+  "soak_sec": 45.0,
+  "follow_sec": 25.0,
+  "levels": {
+    "haut": {
+      "pwm": 200,
+      "stale_frames": 0,
+      "settled_white_lum": 142.1923370361328,
+      "std_after_settle": 0.22291134992036227,
+      "drift_over_follow": -0.2559881102198757,
+      "drift_pct": -0.1800294696294541,
+      "n_frames": 728
+    },
+    "moyen": {
+      "pwm": 60,
+      "stale_frames": 1,
+      "settled_white_lum": 64.88276672363281,
+      "std_after_settle": 0.22768622579061973,
+      "drift_over_follow": 0.012518832302252116,
+      "drift_pct": 0.01929454142357384,
+      "n_frames": 733
+    },
+    "bas": {
+      "pwm": 21,
+      "stale_frames": 1,
+      "settled_white_lum": 18.370561599731445,
+      "std_after_settle": 0.1296315181470891,
+      "drift_over_follow": 0.1362758267174481,
+      "drift_pct": 0.7418163346701402,
+      "n_frames": 713
+    }
+  }
+}
