@@ -165,44 +165,60 @@ raison de se placer en son milieu.
 
 ---
 
-## Ce que la lumière fait, et ne fait pas, au PLA marbré
+## Ce que les trois niveaux révèlent des trois matériaux
 
-| niveau | blanc | objet (moy / p99) | S/B objet | face du cube remplie | bruit sur la face | scène entière remplie |
-|:--|--:|--:|--:|--:|--:|--:|
-| haut (PWM 200) | 142 | 167 / 182 | 133 | 100 % | 0,14 mm | 54,9 % |
-| moyen (PWM 60) | 65 | 78 / 84 | 82 | 100 % | 0,17 mm | 48,9 % |
-| bas (PWM 21) | 18 | 25 / 29 | 32 | 100 % | 0,23 mm | 34,0 % |
+Les trois cubes ont été montés et validés le 2026-07-30, **sans jamais toucher au
+profil**. Aucun des trois n'écrête : p99 de 182, 185 et 190 pour un plafond à 255.
+Le PLA argenté imprimé est satiné et non miroir — l'écrêtage spéculaire redouté
+n'existe pas.
 
-**La face du cube ne se dégrade pratiquement pas** : 4 diaphragmes plus bas, elle
-reste reconstruite à 100 % et le bruit ne fait que passer de 0,14 à 0,23 mm. Ce
-matériau est mat, clair et fortement texturé — le cas le plus favorable pour la
-stéréo passive.
+Mesures sur la **face plane dominante** de chaque cube, à surface équivalente
+(`tools/60_reanalyse_depth.py`) :
 
-**Mais la scène entière, elle, perd un tiers de sa profondeur** (54,9 % à 34,0 %).
-L'effet de la lumière est donc bien réel ; il se concentre simplement sur les zones
-peu contrastées, celles où la stéréo passive manque de texture à apparier. Les deux
-colonnes sont à conserver dans le jeu de données : la première dit ce que devient la
-surface visée, la seconde ce que devient tout le reste.
-
-### Et avec le PLA argenté : l'effet cherché apparaît
-
-Cube argenté monté et validé le 2026-07-30, **profil inchangé**.
-
-| niveau | face remplie (marbré → argenté) | bruit sur la face (marbré → argenté) | scène entière |
+| | marbré | argenté | translucide |
 |:--|--:|--:|--:|
-| haut (PWM 200) | 100 % → **97,9 %** | 0,14 → **0,49 mm** | 54,9 → 57,1 % |
-| moyen (PWM 60) | 100 % → **97,0 %** | 0,17 → **0,60 mm** | 48,9 → 47,0 % |
-| bas (PWM 21) | 100 % → **69,1 %** | 0,23 → **1,11 mm** | 34,0 → 25,8 % |
+| **remplissage** haut (PWM 200) | 100 % | 99,1 % | 100 % |
+| moyen (PWM 60) | 100 % | 97,0 % | 99,3 % |
+| bas (PWM 21) | 100 % | **69,0 %** | 96,6 % |
+| **bruit** haut | 0,15 mm | 0,51 mm | **0,75 mm** |
+| moyen | 0,19 mm | 0,60 mm | 0,76 mm |
+| bas | 0,24 mm | 0,82 mm | 0,91 mm |
 
-Voilà le contraste que le jeu de données doit capturer. L'argenté est déjà 3,5 fois
-plus bruité que le marbré à pleine lumière, et **s'effondre au niveau bas** : un
-tiers de la face perd toute mesure et le bruit atteint 1,11 mm. La cause est visible
-sur les images — sa seule texture est la fine striation des couches d'impression,
-alors que le marbré est fortement moucheté. La stéréo passive a besoin de motif à
-apparier, et l'argenté n'en offre presque pas.
+**Les trois matériaux échouent de trois façons différentes, et les niveaux les
+séparent.**
 
-Contrairement à l'attente, **il n'écrête pas** : p99 = 185 contre 182 pour le
-marbré, marge de 0,46 diaphragme. Le PLA argenté imprimé est satiné, pas miroir.
+- **Marbré** : insensible à la lumière sur les deux métriques. Mat, clair,
+  fortement moucheté — le cas le plus favorable pour la stéréo passive.
+- **Argenté** : *limité par le remplissage*. Correct à pleine lumière, il
+  **s'effondre au niveau bas** — près d'un tiers de la face perd toute mesure. Sa
+  seule texture est la fine striation des couches d'impression, qu'il faut
+  suffisamment de lumière pour résoudre.
+- **Translucide** : *limité par le bruit*. Le pire des trois **à tous les niveaux**,
+  0,75 mm même à pleine lumière, et la lumière n'y change presque rien
+  (0,75 → 0,91). Signature de la diffusion sous la surface : la stéréo apparie à une
+  profondeur *à l'intérieur* du matériau, et le motif de remplissage interne,
+  visible par transparence sur les images, ajoute une texture située au mauvais
+  endroit. Un biais systématique, que plus de lumière ne corrige pas.
+
+C'est exactement ce qu'on attendait des trois niveaux : ils distinguent un matériau
+que la lumière peut sauver (l'argenté) d'un matériau qu'elle ne sauvera pas (le
+translucide).
+
+> **Piège de mesure, corrigé.** Un ajustement de plan par moindres carrés sur tout
+> le masque ne mesure le bruit que si le masque couvre **une seule face**. Le cube
+> translucide est posé sur un sommet et expose deux faces éclairées : l'ajustement
+> global y rendait 9 à 11 mm, soit l'angle dièdre entre les faces déguisé en bruit.
+> `metrics.depth_stats` isole désormais le plan dominant par RANSAC et publie
+> `plane_inlier_frac` — nettement sous 100 %, c'est le signal qu'un masque couvre
+> plusieurs faces. La colonne `plane_rms_all_mm` conserve l'ajustement naïf, dont
+> l'écart avec la version robuste rend le problème visible.
+
+À l'échelle de la **scène entière** — fond noir compris — le remplissage passe de
+54,9 % à 34,0 % entre le niveau haut et le bas sur le marbré. L'effet de la lumière
+est donc bien réel partout ; il se concentre sur les zones peu contrastées, où la
+stéréo passive manque de motif à apparier. Les deux échelles méritent d'être
+conservées dans le jeu de données : l'une dit ce que devient la surface visée,
+l'autre tout le reste.
 
 ### Aucun angle n'écrête : vérifié sur une révolution complète
 
@@ -212,19 +228,25 @@ angulaire. À 2200 us, le flou de filé vaut 0,1° : négligeable, donc inutile 
 positionner le plateau, ce qui évite la roue libre de ~15° et la bascule
 `START_PAUSE`.
 
-Le p99,9 de l'image varie de **146 à 218** selon l'orientation, soit 0,9 diaphragme
-d'effet d'angle — mais **zéro pixel écrêté** sur tout le tour. Marge au pire angle :
-**0,23 diaphragme**. Le pic n'est pas un éclat spéculaire mais la face supérieure
-captant la lampe plus frontalement.
+| matériau | p99,9 min → max sur le tour | pixels écrêtés | marge au pire angle |
+|:--|--:|--:|--:|
+| argenté | 146 → 218 | **0** | 0,23 diaphragme |
+| translucide | — → 236 | **4** | 0,11 diaphragme |
 
-> Marge mince mais mesurée, sur un échantillonnage angulaire dense. **Ne pas la
-> corriger** : baisser les trois niveaux de 0,3 diaphragme (PWM 200/60/21 →
-> 165/51/18) ramènerait la marge à 0,5 mais ferait tomber le rapport signal/bruit
-> du niveau bas de 23 à 21, soit la limite d'acceptation. On échangerait un risque
-> mesuré comme nul contre une dégradation réelle.
+Sur l'argenté, le p99,9 varie de 0,9 diaphragme selon l'orientation sans jamais
+écrêter ; le pic n'est pas un éclat spéculaire mais la face supérieure captant la
+lampe plus frontalement.
 
-L'effet reste à mesurer sur le **translucide**, où c'est le remplissage de
-profondeur au niveau bas qu'il faudra surveiller, et non l'écrêtage.
+Le translucide écrête **4 pixels** à une seule orientation, localisés en
+x 316-320 / y 63-65 : le **sommet supérieur du cube**, là où l'impression est
+déformée. C'est un défaut de cette pièce, pas une limite du réglage — 4 pixels sur
+307 200 n'affectent aucune reconstruction.
+
+> **Ne pas corriger.** Baisser les trois niveaux de 0,3 diaphragme (PWM 200/60/21 →
+> 165/51/18) ramènerait la marge à 0,4 mais ferait tomber le rapport signal/bruit du
+> niveau bas de 22,5 à ~20,5 sur le translucide, soit la limite d'acceptation. On
+> échangerait quatre pixels sur un défaut d'impression contre une dégradation réelle
+> et générale.
 
 Lumière parasite mesurée à PWM 0 : **0,78 / 255**. La pièce est noire, le zéro du
 variateur est un vrai zéro.
@@ -291,6 +313,7 @@ ce que le suivant consomme.
 | `40_validate.py` | valide le profil sur l'objet monté | **chaque matériau** |
 | `45_stability.py` | dérive après une bascule depuis le maximum | changement de lampe |
 | `50_specular_sweep.py` | cherche un écrêtage sur une révolution complète | **chaque matériau** |
+| `60_reanalyse_depth.py` | recalcule les métriques de profondeur des matériaux déjà enregistrés, hors banc | après un changement de métrique |
 
 ```bash
 python3 tools/00_check.py
@@ -357,12 +380,13 @@ mise sous tension**, avant toute commande.
 
 ## À faire avant de lancer le jeu de données
 
-1. ~~Valider le PLA argenté~~ — **fait le 2026-07-30, profil inchangé.**
-2. **Monter le translucide**, puis `40_validate.py --object pla_translucide` et
-   `50_specular_sweep.py --object pla_translucide`. Surveiller cette fois le
-   remplissage de profondeur au niveau bas plutôt que l'écrêtage : l'argenté y
-   descend déjà à 69 %, le translucide devrait faire pire. Si le niveau bas ne rend
-   plus rien du tout, c'est un résultat à conserver, pas un réglage à corriger.
+1. ~~Valider les trois matériaux~~ — **fait le 2026-07-30. Le profil convient aux
+   trois sans modification**, et les trois niveaux les discriminent bien.
+2. **Le cube translucide est déformé à son sommet supérieur.** C'est là que se
+   trouvent les 4 pixels écrêtés, et le défaut fausse aussi sa géométrie de
+   référence. À réimprimer si la vérité terrain géométrique doit servir à évaluer
+   la reconstruction ; sans importance si seule la qualité relative entre niveaux
+   est étudiée.
 3. **Recalibrer le centre du plateau** (`Control_Turtable_IR/calibrate_center.py`) :
    il est stocké en pixels et ne vaut que pour la pose caméra courante.
 4. Décider si l'on relève la caméra ou si l'on imprime des marqueurs de 20 mm.

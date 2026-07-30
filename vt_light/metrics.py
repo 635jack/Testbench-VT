@@ -203,6 +203,43 @@ def brightest_mask(bgr, top_percentile=99.0, roi=None):
 
 # --------------------------------------------------------------------- profondeur
 
+def _ransac_plane(X, Y, z, tol_m=0.002, iterations=250, seed=0):
+    """
+    Plan dominant par RANSAC, et non par moindres carrés sur tout le masque.
+
+    Nécessaire dès que le masque couvre **plusieurs faces**. C'est le cas du cube
+    translucide posé sur un sommet, dont les deux faces supérieures sont éclairées :
+    un ajustement global y mesure l'angle entre les faces — une dizaine de
+    millimètres — et non le bruit de profondeur. Le résidu devient alors une
+    grandeur géométrique déguisée en bruit, sans que rien ne le signale.
+
+    ``tol_m`` vaut 2 mm : quatre fois le pire bruit mesuré sur une face unique
+    (0,5 mm sur le PLA argenté), et bien en deçà de l'écart entre deux faces.
+
+    Returns:
+        (inliers booléens, coefficients du plan)
+    """
+    rng = np.random.default_rng(seed)
+    n = len(z)
+    ones = np.ones(n)
+    best = np.zeros(n, bool)
+    for _ in range(iterations):
+        idx = rng.choice(n, 3, replace=False)
+        A = np.column_stack([X[idx], Y[idx], np.ones(3)])
+        try:
+            coef = np.linalg.solve(A, z[idx])
+        except np.linalg.LinAlgError:
+            continue
+        inliers = np.abs(z - (X * coef[0] + Y * coef[1] + coef[2])) <= tol_m
+        if inliers.sum() > best.sum():
+            best = inliers
+    if best.sum() < 50:
+        return None, None
+    A = np.column_stack([X[best], Y[best], ones[best]])
+    coef, *_ = np.linalg.lstsq(A, z[best], rcond=None)
+    return best, coef
+
+
 def depth_stats(depth_u16, depth_scale, intrinsics, mask=None, fit_plane=True):
     """
     Qualité de la profondeur, mesurée **sur une surface plane connue**.
@@ -244,13 +281,19 @@ def depth_stats(depth_u16, depth_scale, intrinsics, mask=None, fit_plane=True):
     X = (uu - intrinsics["cx"]) * z / intrinsics["fx"]
     Y = (vv - intrinsics["cy"]) * z / intrinsics["fy"]
 
-    # Plan z = a.X + b.Y + c par moindres carrés ; le résidu est la rugosité.
+    # Référence naïve : plan des moindres carrés sur tout le masque. Conservée
+    # parce que l'écart avec la version robuste est ce qui **révèle** qu'un masque
+    # couvre plusieurs faces.
     A = np.column_stack([X, Y, np.ones_like(X)])
     coef, *_ = np.linalg.lstsq(A, z, rcond=None)
-    residual = z - A @ coef
-    # Écarter les 1 % extrêmes : quelques appariements stéréo aberrants suffisent
-    # à multiplier l'écart-type par dix et masqueraient l'effet cherché.
-    keep = np.abs(residual) <= np.percentile(np.abs(residual), 99.0)
-    out["plane_rms_mm"] = float(residual[keep].std() * 1000.0)
-    out["outlier_frac"] = float(1.0 - keep.mean())
+    out["plane_rms_all_mm"] = float((z - A @ coef).std() * 1000.0)
+
+    inliers, coef = _ransac_plane(X, Y, z)
+    if inliers is None:
+        out["plane_rms_mm"] = float("nan")
+        out["plane_inlier_frac"] = 0.0
+        return out
+    residual = z[inliers] - (X[inliers] * coef[0] + Y[inliers] * coef[1] + coef[2])
+    out["plane_rms_mm"] = float(residual.std() * 1000.0)
+    out["plane_inlier_frac"] = float(inliers.mean())
     return out

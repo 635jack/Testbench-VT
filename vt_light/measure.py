@@ -63,6 +63,8 @@ def condition(cam, masks, detector, n_avg=3, n_marker_frames=None,
                                     mask=obj, fit_plane=True)
             row["depth_fill_object"] = d.get("fill_ratio")
             row["depth_rms_object_mm"] = d.get("plane_rms_mm")
+            row["depth_plane_inlier_frac"] = d.get("plane_inlier_frac")
+            row["depth_rms_all_mm"] = d.get("plane_rms_all_mm")
             row["depth_median_mm"] = d.get("median_mm")
         frame = metrics.depth_stats(depths[-1], cam.depth_scale, cam.intrinsics)
         row["depth_fill_frame"] = frame.get("fill_ratio")
