@@ -155,6 +155,31 @@ class Dimmer:
             logger.debug("Ligne série ignorée : %s", line)
         return None
 
+    def send_ir(self, code, retries=1):
+        """
+        Émet une trame infrarouge par le **même** lien série que le PWM.
+
+        Le variateur et le pont infrarouge du plateau tournant sont le même
+        ESP32 sur le même port : ouvrir deux connexions échouerait. Piloter la
+        lumière et le plateau passe donc forcément par cet objet.
+
+        Args:
+            code: code brut du fichier de configuration, ex. ``"NEC 0x0 0x19 0 0x1"``.
+                Le préfixe ``SEND`` est ajouté si absent.
+        """
+        if not code.startswith("SEND"):
+            code = f"SEND {code}"
+        if self.simulation:
+            return code
+        for _ in range(retries + 1):
+            self.ser.reset_input_buffer()
+            self.ser.write((code + "\n").encode())
+            self.ser.flush()
+            ack = self._read_ack("ACK ")
+            if ack is not None:
+                return ack
+        raise RuntimeError(f"Le pont infrarouge n'acquitte pas : {code!r}")
+
     def off(self):
         return self.set_pwm(0)
 

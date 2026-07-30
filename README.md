@@ -184,8 +184,47 @@ peu contrastées, celles où la stéréo passive manque de texture à apparier. 
 colonnes sont à conserver dans le jeu de données : la première dit ce que devient la
 surface visée, la seconde ce que devient tout le reste.
 
-L'effet attendu sur la surface visée devrait apparaître avec le **translucide** (peu
-de retour stéréo) et l'**argenté** (spéculaire, écrêtage local).
+### Et avec le PLA argenté : l'effet cherché apparaît
+
+Cube argenté monté et validé le 2026-07-30, **profil inchangé**.
+
+| niveau | face remplie (marbré → argenté) | bruit sur la face (marbré → argenté) | scène entière |
+|:--|--:|--:|--:|
+| haut (PWM 200) | 100 % → **97,9 %** | 0,14 → **0,49 mm** | 54,9 → 57,1 % |
+| moyen (PWM 60) | 100 % → **97,0 %** | 0,17 → **0,60 mm** | 48,9 → 47,0 % |
+| bas (PWM 21) | 100 % → **69,1 %** | 0,23 → **1,11 mm** | 34,0 → 25,8 % |
+
+Voilà le contraste que le jeu de données doit capturer. L'argenté est déjà 3,5 fois
+plus bruité que le marbré à pleine lumière, et **s'effondre au niveau bas** : un
+tiers de la face perd toute mesure et le bruit atteint 1,11 mm. La cause est visible
+sur les images — sa seule texture est la fine striation des couches d'impression,
+alors que le marbré est fortement moucheté. La stéréo passive a besoin de motif à
+apparier, et l'argenté n'en offre presque pas.
+
+Contrairement à l'attente, **il n'écrête pas** : p99 = 185 contre 182 pour le
+marbré, marge de 0,46 diaphragme. Le PLA argenté imprimé est satiné, pas miroir.
+
+### Aucun angle n'écrête : vérifié sur une révolution complète
+
+L'exposition ayant été fixée sous une seule orientation, `50_specular_sweep.py`
+balaie un tour entier en rotation continue — 1025 images, soit 0,4° d'échantillonnage
+angulaire. À 2200 us, le flou de filé vaut 0,1° : négligeable, donc inutile de
+positionner le plateau, ce qui évite la roue libre de ~15° et la bascule
+`START_PAUSE`.
+
+Le p99,9 de l'image varie de **146 à 218** selon l'orientation, soit 0,9 diaphragme
+d'effet d'angle — mais **zéro pixel écrêté** sur tout le tour. Marge au pire angle :
+**0,23 diaphragme**. Le pic n'est pas un éclat spéculaire mais la face supérieure
+captant la lampe plus frontalement.
+
+> Marge mince mais mesurée, sur un échantillonnage angulaire dense. **Ne pas la
+> corriger** : baisser les trois niveaux de 0,3 diaphragme (PWM 200/60/21 →
+> 165/51/18) ramènerait la marge à 0,5 mais ferait tomber le rapport signal/bruit
+> du niveau bas de 23 à 21, soit la limite d'acceptation. On échangerait un risque
+> mesuré comme nul contre une dégradation réelle.
+
+L'effet reste à mesurer sur le **translucide**, où c'est le remplissage de
+profondeur au niveau bas qu'il faudra surveiller, et non l'écrêtage.
 
 Lumière parasite mesurée à PWM 0 : **0,78 / 255**. La pièce est noire, le zéro du
 variateur est un vrai zéro.
@@ -251,6 +290,7 @@ ce que le suivant consomme.
 | `30_choose.py` | **décide** exposition, trois niveaux, prise de vue de pose | après les précédents |
 | `40_validate.py` | valide le profil sur l'objet monté | **chaque matériau** |
 | `45_stability.py` | dérive après une bascule depuis le maximum | changement de lampe |
+| `50_specular_sweep.py` | cherche un écrêtage sur une révolution complète | **chaque matériau** |
 
 ```bash
 python3 tools/00_check.py
@@ -261,7 +301,12 @@ python3 tools/25_markers.py   -w 5180
 python3 tools/30_choose.py    -w 5180
 python3 tools/40_validate.py  --object pla_marbre
 python3 tools/45_stability.py
+python3 tools/50_specular_sweep.py --object pla_marbre
 ```
+
+Le variateur et le pont infrarouge du plateau sont le **même ESP32 sur le même port
+série** : `Dimmer.send_ir()` émet les trames du plateau par la connexion déjà
+ouverte. Ouvrir un second port en parallèle échouerait.
 
 > `10_white_balance.py` doit tourner avant `05_masks.py -w`, mais `05_masks.py`
 > fournit le masque dont il a besoin. Lancer `05_masks.py` une première fois sans
@@ -312,12 +357,12 @@ mise sous tension**, avant toute commande.
 
 ## À faire avant de lancer le jeu de données
 
-1. **Monter le PLA argenté et relancer `40_validate.py --object pla_argent`.** Le
-   profil a 0,49 diaphragme de marge sur le marbré ; un spéculaire peut la
-   consommer. En cas d'écrêtage, l'outil calcule de combien baisser les **trois**
-   niveaux — jamais l'exposition, qui est ce qui rend les matériaux comparables.
-2. Idem pour le translucide, en surveillant cette fois le remplissage de
-   profondeur au niveau bas plutôt que l'écrêtage.
+1. ~~Valider le PLA argenté~~ — **fait le 2026-07-30, profil inchangé.**
+2. **Monter le translucide**, puis `40_validate.py --object pla_translucide` et
+   `50_specular_sweep.py --object pla_translucide`. Surveiller cette fois le
+   remplissage de profondeur au niveau bas plutôt que l'écrêtage : l'argenté y
+   descend déjà à 69 %, le translucide devrait faire pire. Si le niveau bas ne rend
+   plus rien du tout, c'est un résultat à conserver, pas un réglage à corriger.
 3. **Recalibrer le centre du plateau** (`Control_Turtable_IR/calibrate_center.py`) :
    il est stocké en pixels et ne vaut que pour la pose caméra courante.
 4. Décider si l'on relève la caméra ou si l'on imprime des marqueurs de 20 mm.
