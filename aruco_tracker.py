@@ -171,6 +171,23 @@ class ArUcoTracker:
         else:
             self.detector_params = cv2.aruco.DetectorParameters_create()
             
+        # Seuillage adaptatif : ces valeurs sont volontairement en dur, et
+        # **ne doivent pas** etre remplacees par celles de aruco_config.json.
+        #
+        # La configuration porte `adaptive_thresh_constant: 11` et
+        # `adaptive_thresh_winsize_min: 5`, lues et reecrites par load/save,
+        # mais jamais appliquees. Ce n'est pas un oubli : mesure du
+        # 2026-08-20, 1197 images en rotation, marqueurs vus sur au moins
+        # une image sur...
+        #
+        #     constante 7,  fenetre 3  ->  39,3 %   (les six IDs)
+        #     constante 11, fenetre 5  ->   0,0 %
+        #     constante 11, fenetre 3  ->   0,0 %
+        #     constante 15, fenetre 5  ->   0,0 %
+        #
+        # C'est la constante qui decide : a 11, plus rien ne sort. Les champs
+        # de la configuration sont donc trompeurs et conserves pour la seule
+        # compatibilite de format.
         self.detector_params.adaptiveThreshWinSizeMin = 3
         self.detector_params.adaptiveThreshWinSizeMax = 31
         self.detector_params.adaptiveThreshWinSizeStep = 4
