@@ -33,14 +33,35 @@ ARUCO_DICTS = {
     "DICT_ARUCO_ORIGINAL": cv2.aruco.DICT_ARUCO_ORIGINAL,
 }
 
+class CameraUnavailableError(RuntimeError):
+    """Aucune camera physique accessible, et la simulation n'a pas ete demandee."""
+
+
 class ArUcoTracker:
     """
     Gestionnaire de flux vidéo et d'estimation d'angle par marqueurs ArUco.
     """
+
+    #: Nombre d'images sans detection tolerees avant de rendre None. A 30 fps,
+    #: 10 images font un tiers de seconde : assez pour traverser un reflet,
+    #: trop court pour asservir sur du vent.
+    MAX_STALE_FRAMES = 10
+
+    #: Mode de capture : largeur, hauteur, images par seconde. Le rendre
+    #: explicite n'est pas cosmetique — les modes de la D405 n'ont pas le meme
+    #: champ de vision (78,6 deg en 640x480 contre 88,6 en 1280x720), donc ni
+    #: les intrinseques ni le centre du plateau ne se transposent de l'un a
+    #: l'autre. En 1280x720 la profondeur retombe par ailleurs a 5 ou 15 fps
+    #: derriere la redirection USB de la VM.
+    DEFAULT_MODE = (640, 480, 30)
+
     def __init__(self, config_path="aruco_config.json", simulation=False, camera_id=0,
-                 exposure="default"):
+                 exposure="default", allow_fallback=False):
         self.config_path = config_path
         self.simulation = simulation
+        #: Consentir a des images de synthese quand aucune camera n'est
+        #: joignable. Faux par defaut : voir _init_camera.
+        self.allow_fallback = allow_fallback or simulation
         self.camera_id = camera_id
         self.exposure = self.DEFAULT_EXPOSURE if exposure == "default" else exposure
         
@@ -53,8 +74,12 @@ class ArUcoTracker:
             5: 240.0,
             6: 300.0
         }
+        self.mode = self.DEFAULT_MODE
         self.turntable_center = None # (cx, cy)
         self.smooth_angle = None
+        #: Images consecutives sans aucun marqueur decode. Au-dela de
+        #: MAX_STALE_FRAMES, l'angle est declare inconnu plutot que repete.
+        self._frames_without_detection = 0
         self._angle_history = deque(maxlen=5) # Buffer pour le filtre médian glissant
 
         self.source_name = "Initialisation..."
@@ -85,6 +110,7 @@ class ArUcoTracker:
 
     def load_config(self):
         """Charge la configuration depuis aruco_config.json."""
+        cfg = {}
         if os.path.exists(self.config_path):
             try:
                 with open(self.config_path, 'r', encoding='utf-8') as f:
@@ -101,6 +127,15 @@ class ArUcoTracker:
             except Exception as e:
                 logging.error(f"Erreur chargement aruco_config.json: {e}")
 
+        # Un centre calibre dans un autre mode est pire qu'un centre absent :
+        # il donne des angles faux sans que rien ne le signale.
+        res = cfg.get("calibrated_resolution")
+        if res and tuple(res) != (self.mode[0], self.mode[1]):
+            logging.warning(
+                "[Config] Le centre du plateau a ete calibre en %sx%s, or on "
+                "travaille en %sx%s : les angles seront faux. Relancer "
+                "calibrate_center.py.", res[0], res[1], self.mode[0], self.mode[1])
+
     def save_config(self):
         """Sauvegarde la configuration (ex: centre calibré)."""
         try:
@@ -111,6 +146,11 @@ class ArUcoTracker:
             cfg["dictionary"] = self.dict_name
             cfg["marker_angles"] = {str(k): v for k, v in self.marker_angles.items()}
             cfg["turntable_center"] = list(self.turntable_center) if self.turntable_center else None
+            # Le centre est en pixels : il ne vaut que pour la resolution ou il
+            # a ete estime. L'ecrire a cote evite de reutiliser en silence un
+            # centre calibre dans un autre mode — les modes de la D405 n'ont
+            # pas le meme champ de vision.
+            cfg["calibrated_resolution"] = [self.mode[0], self.mode[1]]
             cfg["invert_colors"] = self.invert_colors
             cfg["adaptive_thresh_constant"] = self.adaptive_thresh_constant
             cfg["adaptive_thresh_winsize_min"] = self.adaptive_thresh_winsize_min
@@ -212,7 +252,20 @@ class ArUcoTracker:
         except Exception as e:
             logging.warning(f"[Camera] Erreur webcam : {e}")
 
-        # 3. Fallback Simulation si aucune caméra trouvée
+        # 3. Aucune caméra physique.
+        #
+        # Basculer silencieusement en images de synthèse est le pire des
+        # comportements : tout continue de fonctionner, les mesures ont l'air
+        # normales, et on enregistre un jeu de données de synthèse en croyant
+        # filmer le banc. C'est arrivé — cinq des six sessions de juillet sont
+        # dans ce cas. On n'y consent donc que si la simulation a été demandée.
+        if not self.allow_fallback:
+            raise CameraUnavailableError(
+                "Aucune caméra physique accessible : ni RealSense, ni webcam. "
+                "Vérifier que la D405 est bien redirigée vers la VM. Pour "
+                "travailler sans matériel, demander explicitement "
+                "simulation=True."
+            )
         self.simulation = True
         self.source_name = "Simulation synthétique (Fallback)"
         logging.warning("[Camera] Aucune caméra physique accessible. Bascule en mode simulation.")
@@ -523,7 +576,17 @@ class ArUcoTracker:
         cx, cy = self.turntable_center
         
         if ids is None or len(ids) == 0:
-            return self.smooth_angle, None # Pas de marqueur visible
+            # Ne jamais faire passer une valeur perimee pour une mesure. On
+            # tolere quelques images sans detection, le temps d'un reflet ou
+            # d'une occultation passagere, puis on avoue ne plus savoir :
+            # asservir sur un angle fige revient a croire converger alors
+            # qu'on ne mesure plus rien.
+            self._frames_without_detection += 1
+            if self._frames_without_detection > self.MAX_STALE_FRAMES:
+                return None, None
+            return self.smooth_angle, None
+
+        self._frames_without_detection = 0
             
         candidates = []
         detected_info = []
