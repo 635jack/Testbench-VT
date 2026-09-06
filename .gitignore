@@ -1,0 +1,45 @@
+# ── Méta-dépôt du banc visuo-tactile ──────────────────────────────────────────
+#
+# Ce dossier de travail contient bien plus que le banc : des dépôts tiers, des
+# jeux de données, des expériences. On inverse donc la règle — tout est exclu,
+# et seuls les modules du banc sont suivis. Ajouter un module se fait par une
+# ligne « ! » ci-dessous, jamais par un « git add -f ».
+/*
+!/.gitignore
+!/README.md
+!/banc.sh
+!/VT-Control/
+!/VT-Tactile/
+!/VT-Bench/
+
+# ── Secrets ───────────────────────────────────────────────────────────────────
+# Le dépôt est public : rien de ce qui suit ne doit y entrer. Le mot de passe
+# sudo de la machine virtuelle se passe par VT_SUDO_PASS, jamais par un fichier.
+hf-tok
+*.token
+.env
+.env.local
+*.pem
+*.key
+secrets.json
+
+# ── Artefacts d'exécution ─────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.DS_Store
+
+# Sessions d'acquisition : elles pèsent des dizaines de mégaoctets et se
+# régénèrent au banc. Le dépôt porte le code, pas les mesures.
+sessions-vt/
+**/runs/
+*.ipynb.bak.*
+.notebook-snapshots/
+
+# Copies de travail laissées à côté d'un fichier (envelop.py.bak,
+# bus.py.avant_double, …). Elles divergent en silence et on finit par éditer
+# la mauvaise.
+*.bak
+*.orig
+*.old
+*.avant_*

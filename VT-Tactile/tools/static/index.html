@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DH116 — Tactile & Contrôle</title>
+<style>
+  :root {
+    --bg: #0e1117;
+    --panel: #161b26;
+    --panel-2: #1d2432;
+    --line: #2a3242;
+    --text: #e6eaf2;
+    --muted: #8b95a8;
+    --accent: #4c8dff;
+    --ok: #35c46b;
+    --warn: #f0a92e;
+    --err: #ff4d4f;
+    --zone-idle: #232b3a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  header {
+    display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+    padding: 12px 20px; border-bottom: 1px solid var(--line); background: var(--panel);
+  }
+  header h1 { font-size: 16px; margin: 0; font-weight: 600; letter-spacing: .3px; }
+  .badges { display: flex; gap: 8px; margin-left: auto; flex-wrap: wrap; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 4px 10px; border-radius: 999px; background: var(--panel-2);
+    border: 1px solid var(--line); font-size: 12px; color: var(--muted);
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .dot.ok { background: var(--ok); }
+  .dot.warn { background: var(--warn); }
+  .dot.err { background: var(--err); }
+
+  main { display: grid; grid-template-columns: minmax(320px, 420px) 1fr; gap: 16px; padding: 16px; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; }
+  .panel h2 {
+    font-size: 12px; text-transform: uppercase; letter-spacing: .08em;
+    color: var(--muted); margin: 0 0 14px; font-weight: 600;
+  }
+  .hand-wrap { display: flex; justify-content: center; }
+  /* Texte clair borde de sombre : lisible aussi bien sur une zone au repos
+     (fond sombre) que sur une zone sous forte pression (fond vif). */
+  svg text {
+    font: 600 11px sans-serif; fill: #eef2f8; pointer-events: none;
+    paint-order: stroke; stroke: rgba(0, 0, 0, .6); stroke-width: 3px;
+    stroke-linejoin: round;
+  }
+  .zone { transition: fill .08s linear; stroke: #39435a; stroke-width: 1.5; }
+
+  .bars { margin-top: 16px; display: grid; gap: 8px; }
+  .bar-row { display: grid; grid-template-columns: 92px 1fr 46px; align-items: center; gap: 10px; }
+  .bar-row span:first-child { color: var(--muted); font-size: 12px; }
+  .bar { height: 10px; border-radius: 5px; background: var(--zone-idle); overflow: hidden; }
+  .bar > i { display: block; height: 100%; width: 0; border-radius: 5px; transition: width .08s linear; }
+  .bar-row var { font-variant-numeric: tabular-nums; font-style: normal; font-size: 12px; text-align: right; color: var(--muted); }
+
+  .motor {
+    display: grid; grid-template-columns: 140px 1fr 150px; gap: 12px; align-items: center;
+    padding: 10px 0; border-top: 1px solid var(--line);
+  }
+  .motor:first-of-type { border-top: none; }
+  .motor .lbl { font-size: 13px; }
+  .motor .lbl small { display: block; color: var(--muted); font-size: 11px; }
+  .motor .tele { font-variant-numeric: tabular-nums; font-size: 11px; color: var(--muted); text-align: right; }
+  .motor .tele b { color: var(--text); font-weight: 600; }
+  .motor .tele .hot { color: var(--warn); }
+
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .row + .row { margin-top: 12px; }
+  button {
+    background: var(--panel-2); color: var(--text); border: 1px solid var(--line);
+    border-radius: 8px; padding: 7px 14px; font-size: 13px; cursor: pointer;
+  }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.danger { border-color: var(--err); color: #ff8b8c; }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  label.field { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+  label.field input[type=range] { width: 130px; }
+  label.field var { font-style: normal; color: var(--text); font-variant-numeric: tabular-nums; min-width: 42px; }
+
+  #toast {
+    position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+    background: var(--err); color: #fff; padding: 9px 16px; border-radius: 8px;
+    font-size: 13px; opacity: 0; pointer-events: none; transition: opacity .2s; max-width: 80vw;
+  }
+  #toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>DH116 — Tactile &amp; Contrôle</h1>
+  <div class="badges">
+    <span class="badge"><i class="dot" id="dot-stream"></i> flux</span>
+    <span class="badge"><i class="dot" id="dot-tactile"></i> tactile <var id="age">—</var></span>
+    <span class="badge"><i class="dot" id="dot-srv"></i> services</span>
+  </div>
+</header>
+
+<main>
+  <section class="panel">
+    <h2>Capteurs tactiles</h2>
+    <div class="hand-wrap">
+      <svg viewBox="24 48 248 292" width="100%" style="max-width:320px">
+        <!-- Doigts longs : index a gauche, auriculaire a droite (main droite, paume face a nous).
+             Index, majeur et annulaire portent DEUX capteurs distincts (bout et pulpe) ;
+             le pouce et l'auriculaire n'en ont qu'un, d'ou un seul pave. -->
+        <rect class="zone" data-zone="Index Tip"     x="112" y="70"  width="34" height="58" rx="17"/>
+        <rect class="zone" data-zone="Index Pad"     x="112" y="130" width="34" height="55" rx="17"/>
+        <rect class="zone" data-zone="Majeur Tip"    x="152" y="52"  width="34" height="66" rx="17"/>
+        <rect class="zone" data-zone="Majeur Pad"    x="152" y="120" width="34" height="65" rx="17"/>
+        <rect class="zone" data-zone="Annulaire Tip" x="192" y="68"  width="34" height="58" rx="17"/>
+        <rect class="zone" data-zone="Annulaire Pad" x="192" y="128" width="34" height="57" rx="17"/>
+        <rect class="zone" data-zone="Auriculaire"   x="232" y="100" width="32" height="85" rx="16"/>
+        <!-- Pouce en opposition : pivote autour de son point de contact avec la paume (106,255) -->
+        <g transform="rotate(35 106 255)">
+          <rect class="zone" data-zone="Pouce" x="72" y="248" width="34" height="92" rx="17"/>
+        </g>
+        <!-- Paume -->
+        <rect class="zone" data-zone="Paume" x="106" y="182" width="162" height="150" rx="34"/>
+        <text x="129" y="132" text-anchor="middle">I</text>
+        <text x="169" y="122" text-anchor="middle">M</text>
+        <text x="209" y="132" text-anchor="middle">A</text>
+        <text x="248" y="148" text-anchor="middle">Au</text>
+        <text x="70"  y="282" text-anchor="middle">P</text>
+        <text x="187" y="262" text-anchor="middle">PAUME</text>
+      </svg>
+    </div>
+    <div class="bars" id="bars"></div>
+    <!-- La paume porte 26 points. On ne connait pas leur disposition physique,
+         donc on les aligne plutot que de simuler une grille qui serait fausse. -->
+    <div style="margin-top:14px">
+      <span style="font-size:12px;opacity:.7">Paume — 26 points</span>
+      <div id="palm-cells" style="display:flex;gap:2px;margin-top:6px;flex-wrap:wrap"></div>
+    </div>
+    <!-- Voie de proximite interne des doigts a capteur unique : elle monte a
+         l'approche, sans contact. C'est la seule proximite exploitable ici. -->
+    <div class="bar-row" style="margin-top:14px">
+      <span>Approche pouce</span>
+      <div class="bar"><i id="prox-thumb" style="background:var(--accent)"></i></div>
+      <var id="prox-thumb-v">—</var>
+    </div>
+    <div class="bar-row">
+      <span>Approche auric.</span>
+      <div class="bar"><i id="prox-little" style="background:var(--accent)"></i></div>
+      <var id="prox-little-v">—</var>
+    </div>
+  </section>
+
+  <section>
+    <div class="panel">
+      <h2>Contrôle des moteurs</h2>
+      <div id="motors"></div>
+      <div class="row" style="margin-top:14px">
+        <label class="field">Vitesse
+          <input type="range" id="vel" min="50" max="2000" step="50" value="500">
+          <var id="vel-v">500</var>
+        </label>
+        <label class="field">Courant max ‰
+          <input type="range" id="cur" min="100" max="1000" step="50" value="1000">
+          <var id="cur-v">1000</var>
+        </label>
+        <label class="field" style="cursor:pointer">
+          <input type="checkbox" id="live"> suivi continu
+        </label>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:16px">
+      <h2>Actions</h2>
+      <div class="row">
+        <button class="primary" data-preset="open">Ouvrir</button>
+        <button data-preset="grasp_ready">Prêt à saisir</button>
+        <button data-preset="pinch">Pince</button>
+        <button data-preset="point">Pointer</button>
+        <button data-preset="fist">Poing</button>
+      </div>
+      <div class="row">
+        <button id="btn-enable">Activer les moteurs</button>
+        <button id="btn-disable">Désactiver</button>
+        <button class="danger" id="btn-home">Homing (recalibrage)</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<div id="toast"></div>
+
+<script>
+// Les neuf zones reellement instrumentees. Le SDK en declare onze : il compte
+// une pulpe au pouce et a l'auriculaire, qui n'existent pas sur ce materiel.
+const ZONES = ['Pouce',
+               'Index Tip', 'Index Pad',
+               'Majeur Tip', 'Majeur Pad',
+               'Annulaire Tip', 'Annulaire Pad',
+               'Auriculaire', 'Paume'];
+const LABELS = { 'Pouce': 'Pouce',
+                 'Index Tip': 'Index — bout',       'Index Pad': 'Index — pulpe',
+                 'Majeur Tip': 'Majeur — bout',     'Majeur Pad': 'Majeur — pulpe',
+                 'Annulaire Tip': 'Annul. — bout',  'Annulaire Pad': 'Annul. — pulpe',
+                 'Auriculaire': 'Auriculaire', 'Paume': 'Paume' };
+// Points de la paume restes muets au balayage du 2026-07-31 (quadrant thenar
+// compris) : affiches en creux pour qu'un zero ne se lise pas comme une absence
+// de contact alors que c'est le capteur qui ne repond pas.
+const PALM_SILENT = new Set([0,1,2,3,4,5,6,7,11,12,13,19]);
+
+let maxPosition = 8500;
+let dragging = new Set();   // moteurs dont le slider est en cours de manipulation
+let built = false;
+
+/* --- utilitaires ------------------------------------------------------- */
+
+function pressureColor(p) {
+  const idle = getComputedStyle(document.documentElement).getPropertyValue('--zone-idle').trim();
+  if (p < 0.02) return idle;
+  const c = Math.min(Math.max(p, 0), 1);
+  // Teinte bleu -> rouge, mais surtout luminosite croissante : un effleurement
+  // doit rester sombre, seule une vraie pression doit "allumer" la zone.
+  const hue = 200 - 200 * Math.pow(c, 0.85);
+  const sat = 40 + 50 * c;
+  const light = 26 + 32 * Math.pow(c, 0.7);
+  return `hsl(${hue}, ${sat}%, ${light}%)`;
+}
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(el._t);
+  el._t = setTimeout(() => el.classList.remove('show'), 4000);
+}
+
+async function send(payload) {
+  try {
+    const r = await fetch('/api/command', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await r.json();
+    if (!r.ok || data.ok === false) throw new Error(data.error || `HTTP ${r.status}`);
+    return data.result;
+  } catch (e) {
+    toast('Commande refusée : ' + e.message);
+    throw e;
+  }
+}
+
+/* --- construction de l'UI ---------------------------------------------- */
+
+function buildBars() {
+  document.getElementById('bars').innerHTML = ZONES.map(z => `
+    <div class="bar-row">
+      <span>${LABELS[z]}</span>
+      <div class="bar"><i data-bar="${z}"></i></div>
+      <var data-val="${z}">—</var>
+    </div>`).join('');
+}
+
+function buildMotors(motors) {
+  document.getElementById('motors').innerHTML = motors.map(m => `
+    <div class="motor">
+      <div class="lbl">${m.name}<small>moteur ${m.id}</small></div>
+      <input type="range" data-motor="${m.id}" min="0" max="${maxPosition}" step="50" value="${m.position ?? 0}">
+      <div class="tele">
+        cible <b data-target="${m.id}">—</b> · pos <b data-pos="${m.id}">—</b><br>
+        courant <b data-cur="${m.id}">—</b>‰
+      </div>
+    </div>`).join('');
+
+  document.querySelectorAll('input[data-motor]').forEach(sl => {
+    const id = sl.dataset.motor;
+    sl.addEventListener('pointerdown', () => dragging.add(id));
+    sl.addEventListener('input', () => {
+      document.querySelector(`[data-target="${id}"]`).textContent = sl.value;
+      if (document.getElementById('live').checked) throttledPush(id, sl.value);
+    });
+    sl.addEventListener('change', () => {
+      pushTarget(id, sl.value);
+      setTimeout(() => dragging.delete(id), 400);
+    });
+  });
+  built = true;
+}
+
+/* --- envoi des consignes ------------------------------------------------ */
+
+function controlArgs() {
+  return {
+    velocity: parseInt(document.getElementById('vel').value, 10),
+    max_current: parseInt(document.getElementById('cur').value, 10),
+  };
+}
+
+function pushTarget(id, value) {
+  send({ cmd: 'position', targets: { [id]: parseInt(value, 10) }, ...controlArgs() });
+}
+
+let lastPush = 0;
+function throttledPush(id, value) {
+  const now = Date.now();
+  if (now - lastPush < 120) return;
+  lastPush = now;
+  pushTarget(id, value);
+}
+
+/* --- paume -------------------------------------------------------------- */
+
+let palmBuilt = false;
+
+function renderPalm(t) {
+  const box = document.getElementById('palm-cells');
+  if (!box) return;
+  const cells = t?.cells || [];
+  if (!palmBuilt) {
+    for (let i = 0; i < 26; i++) {
+      const d = document.createElement('i');
+      d.dataset.palm = i;
+      d.title = PALM_SILENT.has(i) ? `point ${i} — muet au balayage` : `point ${i}`;
+      d.style.cssText = 'width:14px;height:18px;border-radius:3px;display:block;' +
+                        (PALM_SILENT.has(i) ? 'outline:1px dashed rgba(255,255,255,.25);opacity:.45' : '');
+      box.appendChild(d);
+    }
+    palmBuilt = true;
+  }
+  box.querySelectorAll('[data-palm]').forEach(el => {
+    const v = cells[+el.dataset.palm] ?? 0;
+    el.style.background = pressureColor(v);
+  });
+}
+
+/* --- rafraîchissement de l'état ---------------------------------------- */
+
+function setDot(el, state) { el.className = 'dot ' + state; }
+
+function render(s) {
+  maxPosition = s.max_position || maxPosition;
+  if (!built && s.motors?.length) buildMotors(s.motors);
+
+  const byName = Object.fromEntries((s.tactile || []).map(t => [t.name, t]));
+  for (const z of ZONES) {
+    const t = byName[z];
+    const p = t ? t.pressure : 0;
+    document.querySelectorAll(`[data-zone="${z}"]`).forEach(el => {
+      el.setAttribute('fill', pressureColor(p));
+    });
+    const bar = document.querySelector(`[data-bar="${z}"]`);
+    if (bar) {
+      bar.style.width = Math.min(p * 100, 100) + '%';
+      bar.style.background = pressureColor(Math.max(p, 0.05));
+    }
+    const val = document.querySelector(`[data-val="${z}"]`);
+    if (val) val.textContent = t ? (p * 100).toFixed(0) + '%' : '—';
+  }
+
+  renderPalm(byName['Paume']);
+
+  for (const [zone, id] of [['Pouce', 'thumb'], ['Auriculaire', 'little']]) {
+    // self_proximity vaut -1 quand la zone n'a pas cette voie : on n'affiche
+    // alors rien plutot qu'un zero, qui se lirait comme "rien ne s'approche".
+    const sp = byName[zone]?.self_proximity;
+    const has = sp != null && sp >= 0;
+    document.getElementById('prox-' + id).style.width = has ? Math.min(sp * 100, 100) + '%' : '0%';
+    document.getElementById('prox-' + id + '-v').textContent = has ? (sp * 100).toFixed(0) + '%' : '—';
+  }
+
+  for (const m of s.motors || []) {
+    const pos = document.querySelector(`[data-pos="${m.id}"]`);
+    const cur = document.querySelector(`[data-cur="${m.id}"]`);
+    const tgt = document.querySelector(`[data-target="${m.id}"]`);
+    if (pos) pos.textContent = m.position ?? '—';
+    if (cur) {
+      cur.textContent = m.current ?? '—';
+      cur.classList.toggle('hot', (m.current ?? 0) > 500);
+    }
+    if (tgt && !dragging.has(String(m.id))) tgt.textContent = m.target ?? '—';
+    const sl = document.querySelector(`input[data-motor="${m.id}"]`);
+    if (sl && !dragging.has(String(m.id)) && m.position != null) sl.value = m.position;
+  }
+
+  const age = s.tactile_age;
+  document.getElementById('age').textContent = age == null ? '—' : age.toFixed(2) + ' s';
+  setDot(document.getElementById('dot-tactile'),
+         age == null ? 'err' : (age < 0.5 ? 'ok' : 'warn'));
+  setDot(document.getElementById('dot-srv'), s.services_ready ? 'ok' : 'err');
+}
+
+function connect() {
+  const es = new EventSource('/api/stream');
+  es.onopen = () => setDot(document.getElementById('dot-stream'), 'ok');
+  es.onmessage = ev => render(JSON.parse(ev.data));
+  es.onerror = () => {
+    setDot(document.getElementById('dot-stream'), 'err');
+    es.close();
+    setTimeout(connect, 1500);
+  };
+}
+
+/* --- câblage ------------------------------------------------------------ */
+
+buildBars();
+connect();
+
+document.querySelectorAll('[data-preset]').forEach(b => {
+  b.addEventListener('click', () => {
+    dragging.clear();
+    send({ cmd: 'preset', name: b.dataset.preset, ...controlArgs() });
+  });
+});
+document.getElementById('btn-enable').onclick = () => send({ cmd: 'enable', value: 1, joint: 0 });
+document.getElementById('btn-disable').onclick = () => send({ cmd: 'enable', value: 0, joint: 0 });
+document.getElementById('btn-home').onclick = () => {
+  if (confirm('Lancer le homing ? La main va bouger sur toute son amplitude.')) {
+    send({ cmd: 'home', joint: 0 });
+  }
+};
+for (const [sl, out] of [['vel', 'vel-v'], ['cur', 'cur-v']]) {
+  const el = document.getElementById(sl);
+  el.addEventListener('input', () => { document.getElementById(out).textContent = el.value; });
+}
+</script>
+</body>
+</html>

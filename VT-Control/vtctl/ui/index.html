@@ -1,0 +1,1233 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VT-Control — acquisition visuo-tactile</title>
+<style>
+  :root {
+    --bg: #0e1117; --panel: #161b26; --panel-2: #1d2432; --line: #2a3242;
+    --text: #e6eaf2; --muted: #8b95a8; --accent: #4c8dff;
+    --ok: #35c46b; --warn: #f0a92e; --err: #ff4d4f; --zone-idle: #232b3a;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+  header { display: flex; align-items: center; gap: 16px; flex-wrap: wrap;
+           padding: 10px 18px; border-bottom: 1px solid var(--line); background: var(--panel);
+           position: sticky; top: 0; z-index: 10; }
+  header h1 { font-size: 15px; margin: 0; font-weight: 600; letter-spacing: .3px; }
+  .badges { display: flex; gap: 8px; margin-left: auto; flex-wrap: wrap; }
+  .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px;
+           border-radius: 999px; background: var(--panel-2); border: 1px solid var(--line);
+           font-size: 12px; color: var(--muted); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
+  .dot.ok { background: var(--ok); } .dot.warn { background: var(--warn); } .dot.err { background: var(--err); }
+
+  main { display: grid; gap: 14px; padding: 14px; grid-template-columns: 1fr; }
+  .grid2 { display: grid; gap: 14px; grid-template-columns: minmax(0,1fr) minmax(0,420px); }
+  @media (max-width: 1080px) { .grid2 { grid-template-columns: 1fr; } }
+
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+  .panel h2 { font-size: 12px; text-transform: uppercase; letter-spacing: .08em;
+              color: var(--muted); margin: 0 0 12px; font-weight: 600;
+              display: flex; align-items: center; gap: 10px; }
+  .panel h2 .right { margin-left: auto; font-size: 11px; text-transform: none; letter-spacing: 0; }
+
+  .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+  .row + .row { margin-top: 10px; }
+  button { background: var(--panel-2); color: var(--text); border: 1px solid var(--line);
+           border-radius: 8px; padding: 7px 13px; font-size: 13px; cursor: pointer; }
+  button:hover:not(:disabled) { border-color: var(--accent); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+  button.ok { border-color: var(--ok); color: #86e0aa; }
+  button.warn { border-color: var(--warn); color: #ffce7a; }
+  button.danger { border-color: var(--err); color: #ff8b8c; }
+  button:disabled { opacity: .38; cursor: not-allowed; }
+  input[type=text], input[type=number], select, textarea {
+    background: var(--panel-2); color: var(--text); border: 1px solid var(--line);
+    border-radius: 8px; padding: 6px 9px; font-size: 13px; font-family: inherit; }
+  input[type=range] { width: 100%; accent-color: var(--accent); }
+  label.field { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--muted); }
+  label.field input[type=range] { width: 120px; }
+  label.field var, .num { font-style: normal; color: var(--text); font-variant-numeric: tabular-nums; }
+  small.hint { color: var(--muted); font-size: 11.5px; display: block; margin-top: 6px; }
+
+  /* — protocole — */
+  .etat-bandeau { display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
+                  background: var(--panel-2); border: 1px solid var(--line);
+                  border-radius: 10px; padding: 10px 14px; }
+  .etat-nom { font-size: 15px; font-weight: 700; letter-spacing: .04em; }
+  .etat-nom.attente { color: var(--warn); }
+  .etat-nom.erreur { color: var(--err); }
+  .etat-desc { color: var(--muted); font-size: 12.5px; }
+  .etat-bandeau .compteur { margin-left: auto; font-variant-numeric: tabular-nums; color: var(--muted); font-size: 12px; }
+
+  .angles { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 10px; }
+  .angle-chip { padding: 4px 9px; border-radius: 7px; border: 1px solid var(--line);
+                background: var(--panel-2); font-size: 11.5px; font-variant-numeric: tabular-nums;
+                color: var(--muted); }
+  .angle-chip.encours { border-color: var(--accent); color: var(--text); box-shadow: 0 0 0 1px var(--accent) inset; }
+  .angle-chip.valide { border-color: var(--ok); color: #86e0aa; }
+  .angle-chip.invalide { border-color: var(--err); color: #ff8b8c; }
+
+  .decision { margin-top: 12px; border: 1px solid var(--warn); border-radius: 10px;
+              padding: 12px 14px; background: rgba(240,169,46,.07); }
+  .decision.valider { border-color: var(--accent); background: rgba(76,141,255,.07); }
+  .decision h3 { margin: 0 0 8px; font-size: 13px; }
+
+  .jauge { height: 14px; border-radius: 7px; background: var(--zone-idle); overflow: hidden; position: relative; }
+  .jauge > i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .1s linear; }
+  .jauge > u { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--warn); }
+
+  /* — images — */
+  .vues { display: grid; gap: 10px; grid-template-columns: 1fr 1fr; }
+  @media (max-width: 620px) { .vues { grid-template-columns: 1fr; } }
+  .vue { background: #000; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; position: relative; }
+  .vue img { display: block; width: 100%; aspect-ratio: 4/3; object-fit: contain; background: #05070b; }
+  .vue figcaption { position: absolute; left: 8px; top: 8px; font-size: 11px; color: #cfd7e6;
+                    background: rgba(0,0,0,.55); padding: 2px 8px; border-radius: 6px; }
+
+  .cadran { display: flex; align-items: center; gap: 16px; }
+  .cadran .valeur { font-size: 30px; font-weight: 700; font-variant-numeric: tabular-nums; letter-spacing: -.02em; }
+  .cadran .valeur.inconnu { color: var(--muted); }
+  .cadran .detail { font-size: 12px; color: var(--muted); }
+
+  /* — main — */
+  svg text { font: 600 11px sans-serif; fill: #eef2f8; pointer-events: none;
+             paint-order: stroke; stroke: rgba(0,0,0,.6); stroke-width: 3px; stroke-linejoin: round; }
+  .zone { transition: fill .08s linear; stroke: #39435a; stroke-width: 1.5; }
+  .bars { margin-top: 12px; display: grid; gap: 6px; }
+  .bar-row { display: grid; grid-template-columns: 92px 1fr 46px; align-items: center; gap: 10px; }
+  .bar-row span:first-child { color: var(--muted); font-size: 12px; }
+  .bar { height: 10px; border-radius: 5px; background: var(--zone-idle); overflow: hidden; }
+  .bar > i { display: block; height: 100%; width: 0; border-radius: 5px; transition: width .08s linear; }
+  .bar-row var { font-variant-numeric: tabular-nums; font-style: normal; font-size: 12px; text-align: right; color: var(--muted); }
+  .motor { display: grid; grid-template-columns: 120px 1fr 132px; gap: 10px; align-items: center;
+           padding: 8px 0; border-top: 1px solid var(--line); }
+  .motor:first-of-type { border-top: none; }
+  .motor .lbl { font-size: 12.5px; } .motor .lbl small { display: block; color: var(--muted); font-size: 11px; }
+  .motor .tele { font-variant-numeric: tabular-nums; font-size: 11px; color: var(--muted); text-align: right; }
+  .motor .tele b { color: var(--text); font-weight: 600; }
+  .motor .tele .hot { color: var(--warn); }
+  .motor.mort { opacity: .5; }
+
+  /* — squelette de la main — */
+  .vues-main { display: grid; gap: 8px; grid-template-columns: 1fr 1fr; }
+  @media (max-width: 560px) { .vues-main { grid-template-columns: 1fr; } }
+  .vue-main { background: var(--panel-2); border: 1px solid var(--line);
+              border-radius: 9px; position: relative; }
+  .vue-main svg { display: block; width: 100%; height: auto; }
+  .vue-main figcaption { position: absolute; left: 7px; top: 5px; font-size: 10.5px;
+                         color: var(--muted); }
+  .os { stroke-linecap: round; stroke-linejoin: round; fill: none; }
+  .articulation { fill: var(--muted); }
+  .bout { fill: var(--accent); }
+  .bout.contact { fill: var(--err); }
+
+  /* — alertes — */
+  #alertes { display: grid; gap: 6px; }
+  #alertes:not(:empty) { margin-bottom: 14px; }
+  .alerte { display: flex; align-items: flex-start; gap: 10px; padding: 10px 14px;
+            border-radius: 10px; border: 1px solid; font-size: 13.5px; }
+  .alerte.erreur { border-color: var(--err); background: rgba(255,77,79,.10); }
+  .alerte.avert  { border-color: var(--warn); background: rgba(240,169,46,.09); }
+  .alerte.info   { border-color: var(--accent); background: rgba(76,141,255,.09); }
+  .alerte b { font-weight: 600; }
+  .alerte .quand { margin-left: auto; font-size: 11px; color: var(--muted);
+                   white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .alerte .pastille { width: 9px; height: 9px; border-radius: 50%; flex: none; margin-top: 5px; }
+  .alerte.erreur .pastille { background: var(--err); }
+  .alerte.avert  .pastille { background: var(--warn); }
+  .alerte.info   .pastille { background: var(--accent); }
+
+  /* — onglets — */
+  .onglets { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin-bottom: 12px; }
+  .onglets button { border: none; border-bottom: 2px solid transparent; border-radius: 0;
+                    background: none; padding: 7px 14px; color: var(--muted); }
+  .onglets button.actif { color: var(--text); border-bottom-color: var(--accent); }
+  .onglets button:hover:not(.actif) { color: var(--text); border-bottom-color: var(--line); }
+  .vue-onglet { display: none; } .vue-onglet.actif { display: block; }
+
+  .capture-carte { border: 1px solid var(--line); border-radius: 9px; padding: 10px 12px;
+                   margin-bottom: 8px; background: var(--panel-2); }
+  .capture-carte header { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap;
+                          padding: 0; border: none; background: none; position: static; }
+  .capture-carte .titre { font-weight: 600; font-size: 13px; }
+  .capture-carte .meta { font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; }
+  .capture-carte .etat { margin-left: auto; font-size: 11px; padding: 2px 8px; border-radius: 999px; }
+  .capture-carte .etat.valide { background: rgba(53,196,107,.16); color: #86e0aa; }
+  .capture-carte .etat.invalide { background: rgba(255,77,79,.16); color: #ff8b8c; }
+  .capture-carte .etat.en_attente { background: rgba(240,169,46,.16); color: #ffce7a; }
+  .vignettes { display: flex; gap: 5px; margin-top: 8px; overflow-x: auto; padding-bottom: 4px; }
+  .vignettes img { height: 62px; border-radius: 5px; border: 1px solid var(--line); flex: none;
+                   cursor: pointer; background: #05070b; }
+
+  /* — journal — */
+  #journal { max-height: 190px; overflow-y: auto; font-size: 12px; font-variant-numeric: tabular-nums; }
+  #journal div { padding: 2px 0; border-bottom: 1px solid rgba(42,50,66,.5); color: var(--muted); }
+  #journal div b { color: var(--text); font-weight: 500; }
+  #journal .erreur b, #journal .erreur { color: #ff8b8c; }
+  #journal .avert b { color: var(--warn); }
+
+  table.sessions { width: 100%; border-collapse: collapse; font-size: 12px; }
+  table.sessions td { padding: 5px 6px; border-bottom: 1px solid var(--line); }
+  table.sessions td.num { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+
+  #toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%);
+           background: var(--err); color: #fff; padding: 9px 16px; border-radius: 8px;
+           font-size: 13px; opacity: 0; pointer-events: none; transition: opacity .2s; max-width: 80vw; z-index: 50; }
+  #toast.show { opacity: 1; }
+  #toast.bien { background: var(--ok); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>VT-Control — acquisition visuo-tactile</h1>
+  <div class="badges">
+    <span class="badge"><i class="dot" id="dot-flux"></i> flux</span>
+    <span class="badge"><i class="dot" id="dot-cam"></i> caméra <var id="cam-mode" class="num">—</var></span>
+    <span class="badge"><i class="dot" id="dot-main"></i> main</span>
+    <span class="badge" id="badge-pouce" title="carreau ArUco n° 7, collé sur le pouce">
+      <i class="dot" id="dot-pouce"></i> <span id="pouce-etat">pouce ?</span></span>
+    <span class="badge" id="badge-simu" style="display:none">simulation</span>
+    <span class="badge" id="badge-ress">—</span>
+  </div>
+</header>
+
+<main>
+
+  <!-- Bandeau des pannes en cours. Vide quand tout va bien : un bandeau
+       permanent finit par ne plus être lu. L'historique horodaté est en bas. -->
+  <div id="alertes"></div>
+
+  <!-- ─────────────── Protocole ─────────────── -->
+  <section class="panel">
+    <h2>Protocole <span class="right" id="session-nom">aucune session</span></h2>
+
+    <div class="etat-bandeau">
+      <span class="etat-nom" id="etat-nom">REPOS</span>
+      <span class="etat-desc" id="etat-desc">Aucune session ouverte</span>
+      <span class="compteur" id="etat-compteur"></span>
+    </div>
+
+    <div class="angles" id="angles"></div>
+
+    <div id="config" class="row" style="margin-top:12px">
+      <label class="field">objet <input type="text" id="objet" value="cube_pla_gris" size="16"></label>
+      <label class="field">angles <input type="number" id="nb-angles" value="6" min="1" max="36" style="width:62px"></label>
+      <label class="field">pas ° <input type="number" id="pas" value="60" min="1" max="360" style="width:62px"></label>
+      <label class="field">phases
+        <select id="phases">
+          <option value="tactile,visuelle">tactile puis visuelle</option>
+          <option value="tactile">tactile seule</option>
+          <option value="visuelle">visuelle seule</option>
+          <option value="visuelle,tactile">visuelle puis tactile</option>
+        </select></label>
+      <label class="field"><input type="checkbox" id="pouce-requis" checked> exiger le pouce stable</label>
+      <button class="primary" id="btn-start">Démarrer la session</button>
+      <button class="danger" id="btn-stop" disabled>Arrêter</button>
+    </div>
+
+    <!-- Décision : le pouce -->
+    <div class="decision" id="dec-pouce" style="display:none">
+      <h3>Placez le pouce sur l'objet</h3>
+      <div class="row">
+        <div style="flex:1;min-width:220px">
+          <div class="jauge"><i id="pouce-jauge"></i><u id="pouce-seuil"></u></div>
+          <small class="hint" id="pouce-raison">—</small>
+        </div>
+        <span class="num" id="pouce-val" style="font-size:20px;font-weight:700">0.000</span>
+      </div>
+      <div class="row">
+        <span style="font-size:12px;color:var(--muted);min-width:5.5em">opposition</span>
+        <input type="range" id="pivot" min="0" max="8500" step="50" value="3000" style="flex:1;min-width:150px">
+        <span class="num" id="pivot-v" style="min-width:3.6em;text-align:right">3000</span>
+        <button id="btn-pivot">Appliquer</button>
+      </div>
+      <div class="row">
+        <span class="badge" id="pouce-marqueur"><i class="dot"></i> carreau du pouce</span>
+        <button id="btn-voir-pouce">Le chercher</button>
+      </div>
+      <div class="row">
+        <button class="ok" id="btn-armer">Le pouce est posé — fermer</button>
+        <button class="warn" id="btn-contourner">Contourner le critère…</button>
+        <button id="btn-sauter">Sauter cet angle</button>
+      </div>
+      <small class="hint">Le carreau du pouce n'est pas une condition : le pouce
+        peut toucher l'objet hors du champ. Mais s'il n'est pas vu, l'image de la
+        prise ne montrera pas ce qui touche.</small>
+    </div>
+
+    <!-- Décision : la validation -->
+    <div class="decision valider" id="dec-valider" style="display:none">
+      <h3>Cette capture est-elle bonne ?</h3>
+      <div class="row">
+        <input type="text" id="commentaire" placeholder="commentaire (facultatif)" style="flex:1;min-width:200px">
+      </div>
+      <div class="row">
+        <span style="font-size:12px;color:var(--muted);min-width:5.5em">Valider et</span>
+        <button class="ok" data-valid="valide" data-suite="suivant">passer à l'angle suivant</button>
+        <button data-valid="valide" data-suite="reprendre">refaire cet angle</button>
+      </div>
+      <div class="row">
+        <span style="font-size:12px;color:var(--muted);min-width:5.5em">Invalider et</span>
+        <button data-valid="invalide" data-suite="reprendre">refaire cet angle</button>
+        <button class="danger" data-valid="invalide" data-suite="suivant">passer au suivant</button>
+      </div>
+      <small class="hint" id="valider-detail">—</small>
+      <small class="hint">Valider ou invalider ne fait pas avancer : on ne passe
+        à l'angle suivant que si vous le dites. Chaque reprise écrit son propre
+        essai à côté du précédent — rien n'est écrasé.</small>
+    </div>
+  </section>
+
+  <div class="grid2">
+    <div style="display:grid;gap:14px">
+
+      <!-- ─────────────── Images ─────────────── -->
+      <section class="panel">
+        <div class="onglets">
+          <button class="actif" data-onglet="direct">En direct</button>
+          <button data-onglet="capture">Capture en cours</button>
+          <button data-onglet="dataset">Jeu de données</button>
+        </div>
+
+        <div class="vue-onglet actif" data-vue="direct">
+          <div class="vues">
+            <figure class="vue" style="margin:0">
+              <img id="img-color" alt="image couleur">
+              <figcaption>couleur</figcaption>
+            </figure>
+            <figure class="vue" style="margin:0">
+              <img id="img-depth" alt="carte de profondeur">
+              <figcaption>profondeur</figcaption>
+            </figure>
+          </div>
+          <small class="hint" id="img-t">—</small>
+          <small class="hint">Affichage seulement : sur le disque la couleur reste
+            en PNG sans perte et la profondeur en entiers 16 bits, en dixièmes de
+            millimètre. Rien de ce qui est montré n'est ce qui est enregistré.</small>
+        </div>
+
+        <div class="vue-onglet" data-vue="capture">
+          <div id="capture-courante"><small class="hint">Aucune capture en cours.</small></div>
+        </div>
+
+        <div class="vue-onglet" data-vue="dataset">
+          <div class="row" style="margin-bottom:10px">
+            <select id="choix-session" style="flex:1;min-width:200px"></select>
+            <button id="btn-charger-session">Ouvrir</button>
+          </div>
+          <div id="dataset"><small class="hint">Choisissez une session.</small></div>
+        </div>
+      </section>
+
+      <!-- ─────────────── Plateau ─────────────── -->
+      <section class="panel">
+        <h2>Plateau tournant</h2>
+        <div class="cadran">
+          <span class="valeur inconnu" id="angle-val">—</span>
+          <div class="detail" id="angle-detail">aucune mesure</div>
+        </div>
+        <div class="row" style="margin-top:12px">
+          <button id="btn-mesurer">Mesurer l'angle</button>
+          <label class="field">aller à <input type="number" id="cible-angle" value="0" min="0" max="359" style="width:70px"> °</label>
+          <button id="btn-aller">Positionner</button>
+          <button class="danger" id="btn-arreter">Arrêter le plateau</button>
+          <button id="btn-pose">Vérifier la pose caméra</button>
+        </div>
+        <small class="hint">« Arrêter » vérifie avant d'agir : <code>START_PAUSE</code>
+          est une bascule, et une de trop relance le plateau.</small>
+      </section>
+
+      <!-- ─────────────── Lampe ─────────────── -->
+      <section class="panel">
+        <h2>Éclairage <span class="right" id="lampe-etat">—</span></h2>
+
+        <div class="row" id="niveaux"></div>
+
+        <div class="row" style="margin-top:12px">
+          <input type="range" id="pwm" min="0" max="255" step="1" value="120"
+                 style="flex:1;min-width:180px">
+          <span class="num" id="pwm-v" style="font-size:19px;font-weight:700;min-width:3.2em;text-align:right">120</span>
+        </div>
+
+        <div class="jauge" style="margin-top:8px"><i id="lampe-jauge"></i></div>
+
+        <div class="row" style="margin-top:10px">
+          <button id="btn-selftest">Vérifier le banc</button>
+        </div>
+      </section>
+
+      <!-- ─────────────── Connexions ─────────────── -->
+      <section class="panel">
+        <h2>Connexions</h2>
+        <div class="row">
+          <button class="warn" id="btn-rc-camera">Reconnecter la caméra</button>
+          <button class="warn" id="btn-rc-serie">Reconnecter l'ESP32</button>
+          <button class="warn" id="btn-rc-main">Reprendre le bus EtherCAT</button>
+        </div>
+        <small class="hint">Chaque ressource se reprend séparément, sans lâcher
+          son jeton : le relâcher ouvrirait une fenêtre où un autre processus
+          pourrait s'en emparer.</small>
+        <small class="hint">Reconnecter l'ESP32 réinitialise la carte, qui
+          redémarre <b>lampe à fond</b> — le PWM est donc réémis juste après.
+          Refusé pendant une acquisition, qu'une reconnexion casserait.</small>
+        <small class="hint">Les niveaux nommés viennent du profil VT-Light : ils
+          sont espacés de deux diaphragmes <b>en éclairement</b>, mesurés. Pour
+          une acquisition, prendre un niveau — le curseur ne sert qu'au réglage.</small>
+        <small class="hint">La lampe met <b>plus de deux secondes</b> à s'établir.
+          Le variateur, lui, acquitte tout de suite : ce qu'il rend est la
+          consigne, jamais la lumière. Attendre la fin de la barre avant de
+          juger une image.</small>
+      </section>
+
+      <!-- ─────────────── Journal + sessions ─────────────── -->
+      <section class="panel">
+        <h2>Journal</h2>
+        <div id="journal"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Sessions <span class="right"><button id="btn-sessions">Rafraîchir</button></span></h2>
+        <table class="sessions"><tbody id="sessions"><tr><td>—</td></tr></tbody></table>
+      </section>
+    </div>
+
+    <!-- ─────────────── Main ─────────────── -->
+    <div style="display:grid;gap:14px">
+      <section class="panel">
+        <h2>Capteurs tactiles <span class="right" id="tactile-age">—</span></h2>
+        <div style="display:flex;justify-content:center">
+          <svg viewBox="24 48 248 292" width="100%" style="max-width:280px">
+            <!-- Doigts longs : index a gauche, auriculaire a droite (main droite, paume face a nous).
+                 Index, majeur et annulaire portent DEUX capteurs distincts (bout et pulpe) ;
+                 le pouce et l'auriculaire n'en ont qu'un, d'ou un seul pave. -->
+            <rect class="zone" data-zone="Index Tip"     x="112" y="70"  width="34" height="58" rx="17"/>
+            <rect class="zone" data-zone="Index Pad"     x="112" y="130" width="34" height="55" rx="17"/>
+            <rect class="zone" data-zone="Majeur Tip"    x="152" y="52"  width="34" height="66" rx="17"/>
+            <rect class="zone" data-zone="Majeur Pad"    x="152" y="120" width="34" height="65" rx="17"/>
+            <rect class="zone" data-zone="Annulaire Tip" x="192" y="68"  width="34" height="58" rx="17"/>
+            <rect class="zone" data-zone="Annulaire Pad" x="192" y="128" width="34" height="57" rx="17"/>
+            <rect class="zone" data-zone="Auriculaire"   x="232" y="100" width="32" height="85" rx="16"/>
+            <g transform="rotate(35 106 255)">
+              <rect class="zone" data-zone="Pouce" x="72" y="248" width="34" height="92" rx="17"/>
+            </g>
+            <rect class="zone" data-zone="Paume" x="106" y="182" width="162" height="150" rx="34"/>
+            <text x="129" y="132" text-anchor="middle">I</text>
+            <text x="169" y="122" text-anchor="middle">M</text>
+            <text x="209" y="132" text-anchor="middle">A</text>
+            <text x="248" y="148" text-anchor="middle">Au</text>
+            <text x="70"  y="282" text-anchor="middle">P</text>
+            <text x="187" y="262" text-anchor="middle">PAUME</text>
+          </svg>
+        </div>
+        <div class="bars" id="bars"></div>
+      </section>
+
+      <!-- ─────────────── Cinématique ─────────────── -->
+      <section class="panel">
+        <h2>Cinématique <span class="right" id="cine-etat">—</span></h2>
+        <div class="vues-main">
+          <figure class="vue-main" style="margin:0">
+            <svg id="vue-cote" viewBox="0 0 200 200"></svg>
+            <figcaption>de côté</figcaption>
+          </figure>
+          <figure class="vue-main" style="margin:0">
+            <svg id="vue-dessus" viewBox="0 0 200 200"></svg>
+            <figcaption>de dessus</figcaption>
+          </figure>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button class="warn" id="btn-etalonner">Étalonner le facteur</button>
+          <span class="badge" id="badge-cine">—</span>
+        </div>
+        <small class="hint">Le dessin vient de l'URDF et des positions moteur
+          réelles. Comparez-le à la main : s'ils divergent, c'est le facteur
+          counts → radians qui est faux, pas la géométrie.</small>
+        <small class="hint">Le bout d'un doigt passe en <b style="color:var(--err)">rouge</b>
+          quand sa zone tactile signale un contact.</small>
+      </section>
+
+      <section class="panel">
+        <h2>Main — position des doigts</h2>
+        <div id="motors"></div>
+        <div class="row" style="margin-top:10px">
+          <label class="field">vitesse <input type="range" id="vel" min="50" max="2000" step="50" value="500"><var id="vel-v">500</var></label>
+          <label class="field">couple ‰ <input type="range" id="cur" min="100" max="1000" step="50" value="800"><var id="cur-v">800</var></label>
+        </div>
+        <div class="row">
+          <button id="btn-ouvrir">Ouvrir la main</button>
+          <button id="btn-zero">Zéro tactile</button>
+          <button class="warn" id="btn-reconnexion">Reprendre le bus</button>
+        </div>
+        <small class="hint">La position ne se rafraîchit qu'une fois le mouvement
+          terminé : la télémétrie n'est pas interrogée pendant le déplacement,
+          les lectures du SDK annulent la trame de commande. Un doigt immobile
+          au-delà de 500 ‰ est déclaré bloqué et n'est pas relancé.</small>
+      </section>
+    </div>
+  </div>
+</main>
+
+<div id="toast"></div>
+
+<script>
+"use strict";
+
+const ZONES = ["Pouce","Index Tip","Index Pad","Majeur Tip","Majeur Pad",
+               "Annulaire Tip","Annulaire Pad","Auriculaire","Paume"];
+/* ring.pad est mort (0 count, mesure du 2026-08-19). On l'affiche quand meme,
+   grise : le masquer ferait croire a un capteur qui n'existe pas. */
+const ZONES_MORTES = new Set(["Annulaire Pad"]);
+
+let etatCourant = null, motorsBatis = false, maxPosition = 8500;
+const enGlissement = new Set();
+const dernierEnvoi = {};
+
+/* ---------- utilitaires ---------- */
+
+function toast(msg, bien) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'show' + (bien ? ' bien' : '');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => { t.className = ''; }, 3600);
+}
+
+async function envoyer(payload) {
+  try {
+    const r = await fetch('/api/command', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)
+    });
+    const j = await r.json();
+    if (!j.ok) { toast(j.error || 'commande refusée'); return null; }
+    return j.result;
+  } catch (e) { toast('serveur injoignable : ' + e.message); return null; }
+}
+
+function couleurPression(p) {
+  if (p <= 0.001) return '#232b3a';
+  const h = 210 - 210 * Math.min(p, 1);            /* bleu -> rouge */
+  return `hsl(${h} 78% ${28 + 26 * Math.min(p, 1)}%)`;
+}
+
+function setDot(id, etat) { document.getElementById(id).className = 'dot ' + etat; }
+
+/* ---------- construction ---------- */
+
+function batirBarres() {
+  document.getElementById('bars').innerHTML = ZONES.map(z => `
+    <div class="bar-row"${ZONES_MORTES.has(z) ? ' style="opacity:.5"' : ''}>
+      <span>${z}</span><div class="bar"><i data-bar="${z}"></i></div>
+      <var data-val="${z}">—</var>
+    </div>`).join('');
+}
+
+function batirMoteurs(motors) {
+  document.getElementById('motors').innerHTML = motors.map(m => `
+    <div class="motor${m.mort ? ' mort' : ''}">
+      <div class="lbl">${m.name}<small>moteur ${m.id}${m.mort ? ' · en panne' : ''}</small></div>
+      <input type="range" data-motor="${m.id}" min="0" max="${maxPosition}" step="50"
+             value="${m.position ?? 0}"${m.mort ? ' disabled' : ''}>
+      <div class="tele">cible <b data-target="${m.id}">—</b> · pos <b data-pos="${m.id}">—</b><br>
+           courant <b data-cur="${m.id}">—</b>‰</div>
+    </div>`).join('');
+
+  document.querySelectorAll('input[data-motor]').forEach(sl => {
+    const id = sl.dataset.motor;
+    sl.addEventListener('pointerdown', () => enGlissement.add(id));
+    sl.addEventListener('input', () => {
+      document.querySelector(`[data-target="${id}"]`).textContent = sl.value;
+    });
+    sl.addEventListener('change', () => {
+      pousser(id, sl.value);
+      setTimeout(() => enGlissement.delete(id), 500);
+    });
+  });
+  motorsBatis = true;
+}
+
+function argsMoteur() {
+  return {velocity: +document.getElementById('vel').value,
+          max_current: +document.getElementById('cur').value};
+}
+
+function pousser(id, valeur) {
+  dernierEnvoi[id] = +valeur;
+  envoyer(Object.assign({cmd: 'position', targets: {[id]: +valeur}}, argsMoteur()))
+    .then(r => { if (r && r.bloques && r.bloques.length)
+                   toast('doigt bloqué : ' + r.bloques.join(', ')); });
+}
+
+/* ---------- rendu ---------- */
+
+function rendre(s) {
+  etatCourant = s;
+  setDot('dot-flux', 'ok');
+  setDot('dot-cam', s.camera.ouverte ? 'ok' : 'err');
+  document.getElementById('cam-mode').textContent =
+    s.camera.mode ? `${s.camera.mode} ${s.camera.exposition_us ?? '—'} µs` : '—';
+  setDot('dot-main', s.main.prete ? (s.main.zero_fait ? 'ok' : 'warn') : 'err');
+  rendrePouceVu(s.protocole && s.protocole.pouce_vu);
+  document.getElementById('badge-simu').style.display = s.simulation ? '' : 'none';
+  document.getElementById('badge-ress').textContent =
+    Object.keys(s.ressources || {}).length
+      ? Object.keys(s.ressources).join(' · ') : 'aucune ressource';
+
+  rendreAlertes(s.alertes || []);
+  rendreSquelette(s.squelette, s.main);
+  rendreLampe(s);
+  rendreProtocole(s.protocole);
+  rendreTactile(s.main);
+  rendreMoteurs(s.main);
+  rendreJournal(s.journal || []);
+  if (s.image && s.image.disponible) {
+    document.getElementById('img-t').textContent =
+      `dernière image : t = ${s.image.t} s · mode ${s.image.mode}`;
+  }
+}
+
+let niveauxBatis = false, pwmEnGlissement = false, pivotEnGlissement = false;
+
+/* Le carreau n° 7 est collé sur le pouce. Le mesurer coûte des images en mode
+   ArUco, donc on ne le fait pas en continu : la pastille montre le **dernier
+   résultat connu** avec son âge, plutôt que de laisser croire à une mesure
+   fraîche. Une mesure vieille de dix minutes ne dit rien de maintenant. */
+let dernierPouceVu = null, dernierPouceT = 0;
+
+function rendrePouceVu(vu) {
+  if (vu && vu.tentees) {
+    if (JSON.stringify(vu) !== JSON.stringify(dernierPouceVu)) {
+      dernierPouceVu = vu;
+      dernierPouceT = Date.now() / 1000;
+    }
+  }
+  const el = document.getElementById('pouce-etat');
+  const v = dernierPouceVu;
+  if (!v) { setDot('dot-pouce', ''); el.textContent = 'pouce ?'; return; }
+  const age = Date.now() / 1000 - dernierPouceT;
+  const vieux = age > 60;
+  setDot('dot-pouce', vieux ? 'warn' : (v.vu ? 'ok' : 'err'));
+  const d = v.pose_3d ? ` · ${(v.pose_3d.distance_m * 100).toFixed(0)} cm` : '';
+  el.textContent = (v.vu ? `pouce vu ${v.images}/${v.tentees}${d}`
+                         : 'pouce hors champ')
+                 + (vieux ? ` (il y a ${duree(age)})` : '');
+  document.getElementById('badge-pouce').title =
+    v.vu ? `carreau n° ${v.marqueur} décodé sur ${v.images}/${v.tentees} images`
+         + (v.position_px ? ` · en ${v.position_px[0]}, ${v.position_px[1]} px` : '')
+         + (v.pose_3d ? `\npose caméra : ${v.pose_3d.tvec_m.map(x => x.toFixed(3)).join(', ')} m`
+                      + ` (taille supposée ${v.taille_marqueur_m * 1000} mm)` : '')
+         : `carreau n° ${v.marqueur} non décodé sur ${v.tentees} images`;
+}
+
+/* ---------- squelette de la main ---------- */
+
+/* Les zones tactiles portent le nom francais dans l'interface et le nom du
+   modele dans la cinematique : la correspondance vit ici, pas dans le
+   decodeur, qui n'a pas a connaitre l'affichage. */
+const ZONE_DU_DOIGT = {
+  thumb: ['Pouce'], index: ['Index Tip', 'Index Pad'],
+  middle: ['Majeur Tip', 'Majeur Pad'], ring: ['Annulaire Tip', 'Annulaire Pad'],
+  little: ['Auriculaire'],
+};
+const COULEUR_DOIGT = {
+  thumb: '#f0a92e', index: '#4c8dff', middle: '#35c46b',
+  ring: '#b48cff', little: '#ff8b8c',
+};
+
+function rendreSquelette(sq, main) {
+  const el = document.getElementById('cine-etat');
+  if (!sq || !sq.doigts) {
+    el.textContent = 'main absente';
+    document.getElementById('vue-cote').innerHTML = '';
+    document.getElementById('vue-dessus').innerHTML = '';
+    return;
+  }
+  const c = sq.conversion || {};
+  el.textContent = c.etalonne ? `${c.counts_par_radian} counts/rad, étalonné`
+                              : `${c.counts_par_radian} counts/rad — non étalonné`;
+  el.style.color = c.etalonne ? 'var(--ok)' : 'var(--warn)';
+  document.getElementById('badge-cine').textContent =
+    c.etalonne ? 'facteur mesuré' : (c.hypothese || 'hypothèse');
+
+  /* Quelles zones touchent, pour colorer les bouts. */
+  const pression = {};
+  (main.tactile || []).forEach(z => { pression[z.name] = z.pressure ?? 0; });
+  const enContact = {};
+  Object.entries(ZONE_DU_DOIGT).forEach(([doigt, zones]) => {
+    enContact[doigt] = zones.some(z => (pression[z] ?? 0) > 0.03);
+  });
+
+  /* Deux projections orthogonales : la vue de côté montre l'enroulement, celle
+     de dessus l'écartement. Une seule ne suffit pas — une main repliée à
+     l'envers a la même silhouette de dessus qu'une main correcte. */
+  dessiner('vue-cote', sq.doigts, enContact, p => [p[2], p[0]], 'z', 'x');
+  dessiner('vue-dessus', sq.doigts, enContact, p => [p[2], p[1]], 'z', 'y');
+}
+
+function dessiner(id, doigts, enContact, proj) {
+  const svg = document.getElementById(id);
+  const pts = [];
+  Object.values(doigts).forEach(ch => ch.forEach(p => pts.push(proj(p))));
+  if (!pts.length) { svg.innerHTML = ''; return; }
+
+  /* Cadrage commun aux deux vues : une echelle qui change a chaque image
+     ferait bouger la main sans qu'elle bouge. */
+  const xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+  const marge = 0.02;
+  const x0 = Math.min(...xs) - marge, x1 = Math.max(...xs) + marge;
+  const y0 = Math.min(...ys) - marge, y1 = Math.max(...ys) + marge;
+  const k = Math.min(196 / (x1 - x0), 196 / (y1 - y0));
+  const X = v => 2 + (v - x0) * k;
+  const Y = v => 198 - (v - y0) * k;
+
+  let out = '';
+  Object.entries(doigts).forEach(([doigt, chaine]) => {
+    const q = chaine.map(proj);
+    const d = q.map((p, i) => `${i ? 'L' : 'M'}${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join(' ');
+    out += `<path class="os" d="${d}" stroke="${COULEUR_DOIGT[doigt] || '#8b95a8'}" stroke-width="3"/>`;
+    q.slice(1, -1).forEach(p =>
+      out += `<circle class="articulation" cx="${X(p[0]).toFixed(1)}" cy="${Y(p[1]).toFixed(1)}" r="2"/>`);
+    const b = q[q.length - 1];
+    out += `<circle class="bout${enContact[doigt] ? ' contact' : ''}" `
+         + `cx="${X(b[0]).toFixed(1)}" cy="${Y(b[1]).toFixed(1)}" r="3.4"/>`;
+  });
+  /* Un repère d'échelle : sans lui, on ne sait pas si l'on regarde une main ou
+     une maquette de trois centimètres. */
+  const cm = 0.05 * k;
+  out += `<line x1="6" y1="192" x2="${(6 + cm).toFixed(1)}" y2="192" `
+       + `stroke="var(--muted)" stroke-width="1.5"/>`
+       + `<text x="6" y="188" fill="var(--muted)" style="font-size:8px;stroke:none">5 cm</text>`;
+  svg.innerHTML = out;
+}
+
+function rendreAlertes(alertes) {
+  const el = document.getElementById('alertes');
+  /* Signature plutot que rendu systematique : redessiner le bandeau a 20 Hz
+     ferait clignoter le texte et empecherait de le selectionner. */
+  const sig = alertes.map(a => a.cle + a.niveau + a.message).join('|');
+  if (el._sig === sig) {
+    el.querySelectorAll('[data-depuis]').forEach(q => {
+      q.textContent = 'depuis ' + duree(Date.now() / 1000 - +q.dataset.depuis);
+    });
+    return;
+  }
+  el._sig = sig;
+  el.innerHTML = alertes.map(a => `
+    <div class="alerte ${a.niveau}">
+      <i class="pastille"></i>
+      <div><b>${echapper(titreAlerte(a.cle))}</b> — ${echapper(a.message)}</div>
+      <span class="quand" data-depuis="${a.depuis}">depuis ${duree(a.duree_s)}</span>
+    </div>`).join('');
+}
+
+const TITRES = {
+  camera_deplacee: 'Caméra déplacée',
+  pose_degradee: 'Pose caméra',
+  camera_muette: 'Caméra muette',
+  main_muette: 'Main muette',
+  main_alarme: 'Variateur en alarme',
+  lampe_inerte: 'Lampe sans effet',
+  plateau_immobile: 'Plateau immobile',
+  plateau_bloque: 'Plateau non arrêté',
+  ressource_perdue: 'Ressource perdue',
+};
+function titreAlerte(cle) { return TITRES[cle] || cle; }
+
+function duree(s) {
+  s = Math.max(0, Math.round(s));
+  if (s < 60) return s + ' s';
+  if (s < 3600) return Math.floor(s / 60) + ' min';
+  return Math.floor(s / 3600) + ' h';
+}
+
+function rendreLampe(s) {
+  const b = s.banc || {};
+  if (!niveauxBatis && (s.niveaux || []).length) batirNiveaux(s.niveaux);
+
+  const consigne = b.pwm_demande ?? b.pwm;
+  const sl = document.getElementById('pwm');
+  if (!pwmEnGlissement && consigne != null && +sl.value !== consigne) {
+    sl.value = consigne;
+    document.getElementById('pwm-v').textContent = consigne;
+  }
+
+  /* Barre d'etablissement : la lampe n'est pas au niveau demande tant qu'elle
+     n'est pas ecoulee. C'est la seule chose qui distingue « commande » de
+     « etabli », le variateur ne mesurant rien. */
+  const reste = b.reste_a_etablir_s ?? 0;
+  const total = b.settle_s || 3.5;
+  const jauge = document.getElementById('lampe-jauge');
+  const fait = total > 0 ? Math.max(0, Math.min(1, 1 - reste / total)) : 1;
+  jauge.style.width = (fait * 100) + '%';
+  jauge.style.background = b.etablie ? 'var(--ok)' : 'var(--warn)';
+
+  document.getElementById('lampe-etat').textContent =
+    consigne == null ? '—'
+    : (b.etablie ? `PWM ${consigne} — établie`
+                 : `PWM ${consigne} — s'établit… ${reste.toFixed(1)} s`);
+
+  /* Le niveau nomme actif se met en evidence. */
+  document.querySelectorAll('[data-niveau]').forEach(btn => {
+    const actif = +btn.dataset.pwm === consigne;
+    btn.className = actif ? 'primary' : '';
+  });
+}
+
+function batirNiveaux(niveaux) {
+  document.getElementById('niveaux').innerHTML = niveaux.map(n =>
+    `<button data-niveau="${echapper(n.nom)}" data-pwm="${n.pwm}"
+             title="PWM ${n.pwm}">${echapper(n.nom)}</button>`).join('');
+  document.querySelectorAll('[data-niveau]').forEach(b => {
+    b.onclick = () => {
+      const nom = b.dataset.niveau;
+      /* « aruco » et « éteinte » ne sont pas dans le profil : on les envoie
+         en PWM brut, les autres par leur nom pour que le profil fasse foi. */
+      envoyer(nom === 'aruco' ? {cmd: 'lumiere', aruco: true}
+            : nom === 'éteinte' ? {cmd: 'lumiere', pwm: 0}
+            : {cmd: 'lumiere', niveau: nom});
+    };
+  });
+  niveauxBatis = true;
+}
+
+function rendreProtocole(p) {
+  if (!p) return;
+  const m = p.machine || {};
+  const nom = document.getElementById('etat-nom');
+  nom.textContent = m.etat || 'REPOS';
+  nom.className = 'etat-nom' + (m.etat === 'ERREUR' ? ' erreur'
+                              : (m.attend_operateur ? ' attente' : ''));
+  document.getElementById('etat-desc').textContent =
+    (m.erreur && m.etat === 'ERREUR') ? (m.erreur.cause || m.description) : (m.description || '');
+  document.getElementById('session-nom').textContent =
+    p.session ? p.session.split('/').pop() : 'aucune session';
+  document.getElementById('etat-compteur').textContent =
+    p.angles_total ? `angle ${Math.max(p.angle_index, 0) + 1} / ${p.angles_total}`
+                   + (p.essai ? ` · essai ${p.essai + 1}` : '')
+                   + (p.phase ? ` · phase ${p.phase}` : '') : '';
+
+  /* angles : etat de chacun, d'apres la progression deja ecrite */
+  const parIndex = {};
+  (p.progression || []).forEach(x => { parIndex[`${x.phase}:${x.angle_index}`] = x; });
+  document.getElementById('angles').innerHTML = (p.angles || []).map((a, i) => {
+    const fait = parIndex[`${p.phase}:${i}`];
+    let cls = 'angle-chip';
+    if (fait) cls += fait.validation === 'valide' ? ' valide' : ' invalide';
+    else if (i === p.angle_index && p.en_cours) cls += ' encours';
+    const mes = fait && fait.mesure_deg != null ? ` → ${fait.mesure_deg.toFixed(1)}°` : '';
+    return `<span class="${cls}">${a.toFixed(0)}°${mes}</span>`;
+  }).join('');
+
+  /* angle courant */
+  const ac = p.angle_courant || {};
+  const val = document.getElementById('angle-val');
+  if (ac.mesure_deg != null) {
+    val.textContent = ac.mesure_deg.toFixed(1) + '°';
+    val.className = 'valeur';
+    document.getElementById('angle-detail').textContent =
+      `consigne ${ac.consigne_deg ?? '—'}° · écart ${ac.ecart_deg ?? '—'}° · `
+      + `${ac.images_exploitables ?? 0}/${ac.images_tentees ?? 0} images · `
+      + `carreaux ${(ac.marqueurs_vus || []).join(', ') || '—'}`;
+  } else if (ac.consigne_deg != null) {
+    val.textContent = '—'; val.className = 'valeur inconnu';
+    document.getElementById('angle-detail').textContent =
+      `consigne ${ac.consigne_deg}° · aucun marqueur décodé sur `
+      + `${ac.images_tentees ?? 0} images — un angle absent vaut mieux qu'un angle inventé`;
+  }
+
+  /* boutons de session */
+  document.getElementById('btn-start').disabled = !!p.en_cours;
+  document.getElementById('btn-stop').disabled = !p.en_cours;
+  document.querySelectorAll('#config input, #config select')
+    .forEach(el => { el.disabled = !!p.en_cours; });
+
+  /* decision : pouce */
+  const decP = document.getElementById('dec-pouce');
+  decP.style.display = p.attend_pouce ? '' : 'none';
+  if (p.attend_pouce) {
+    const t = p.pouce || {};
+    const pr = t.pression ?? 0;
+    document.getElementById('pouce-jauge').style.width = (Math.min(pr, 1) * 100) + '%';
+    document.getElementById('pouce-jauge').style.background = t.pret ? 'var(--ok)' : 'var(--accent)';
+    document.getElementById('pouce-val').textContent = pr.toFixed(3);
+    document.getElementById('pouce-seuil').style.left =
+      ((s_seuil(p) ) * 100) + '%';
+    document.getElementById('pouce-raison').textContent = t.raison || 'en attente d\'une trame';
+
+    /* Le carreau du pouce : information, pas condition. */
+    const vu = p.pouce_vu || {};
+    const badge = document.getElementById('pouce-marqueur');
+    const point = badge.querySelector('.dot');
+    point.className = 'dot ' + (vu.vu ? 'ok' : (vu.tentees ? 'warn' : ''));
+    badge.lastChild.textContent = vu.tentees
+      ? (vu.vu ? ` carreau du pouce vu (${vu.images}/${vu.tentees})`
+               : ' carreau du pouce hors champ')
+      : ' carreau du pouce';
+
+    if (!pivotEnGlissement && vu.pivot == null && p.pivot_depart != null
+        && !curseurPivot.dataset.touche) {
+      curseurPivot.value = t.pivot ?? p.pivot_depart;
+      document.getElementById('pivot-v').textContent = curseurPivot.value;
+    }
+  }
+
+  /* decision : validation */
+  const decV = document.getElementById('dec-valider');
+  decV.style.display = p.attend_validation ? '' : 'none';
+  if (p.attend_validation && !decV._montre) {
+    decV._montre = true;
+    if (ongletActif() === 'capture') montrerCaptureCourante();
+  } else if (!p.attend_validation) { decV._montre = false; }
+  if (p.attend_validation) {
+    document.getElementById('valider-detail').textContent =
+      `angle ${(p.angle_index ?? 0) + 1}/${p.angles_total} · `
+      + `mesuré ${ac.mesure_deg != null ? ac.mesure_deg.toFixed(1) + '°' : '—'}`;
+  }
+}
+
+function s_seuil(p) {
+  const r = etatCourant && etatCourant.reglages;
+  return r ? (r.seuil_pouce ?? 0.06) : 0.06;
+}
+
+function rendreTactile(main) {
+  const zones = main.tactile || [];
+  const age = main.tactile_age;
+  document.getElementById('tactile-age').textContent =
+    age == null ? '—' : (age < 1 ? `${(age * 1000) | 0} ms` : `${age.toFixed(1)} s`);
+  zones.forEach(z => {
+    const p = z.pressure ?? 0;
+    const rect = document.querySelector(`.zone[data-zone="${z.name}"]`);
+    if (rect) rect.setAttribute('fill', couleurPression(p));
+    const bar = document.querySelector(`[data-bar="${z.name}"]`);
+    if (bar) { bar.style.width = (Math.min(p, 1) * 100) + '%';
+               bar.style.background = couleurPression(Math.max(p, 0.02)); }
+    const v = document.querySelector(`[data-val="${z.name}"]`);
+    if (v) v.textContent = p.toFixed(3);
+  });
+}
+
+function rendreMoteurs(main) {
+  const motors = main.motors || [];
+  if (!motors.length) return;
+  if (main.max_position) maxPosition = main.max_position;
+  const morts = new Set(main.broken_motors || []);
+  motors.forEach(m => { m.mort = morts.has(m.name) || morts.has(m.short); });
+  if (!motorsBatis) batirMoteurs(motors);
+  motors.forEach(m => {
+    const id = String(m.id);
+    const pos = document.querySelector(`[data-pos="${id}"]`);
+    const cur = document.querySelector(`[data-cur="${id}"]`);
+    const tgt = document.querySelector(`[data-target="${id}"]`);
+    const sl = document.querySelector(`input[data-motor="${id}"]`);
+    if (pos) pos.textContent = m.position ?? '—';
+    if (cur) { cur.textContent = m.current ?? '—';
+               cur.className = (m.current ?? 0) >= 500 ? 'hot' : ''; }
+    if (tgt && !enGlissement.has(id)) tgt.textContent = m.target ?? dernierEnvoi[id] ?? '—';
+    if (sl && !enGlissement.has(id) && m.position != null) sl.value = m.position;
+  });
+}
+
+function rendreJournal(lignes) {
+  const el = document.getElementById('journal');
+  if (el._n === lignes.length) return;
+  el._n = lignes.length;
+  el.innerHTML = lignes.slice().reverse().map(l => {
+    const h = new Date(l.t * 1000).toLocaleTimeString('fr-FR');
+    return `<div class="${l.niveau}">${h} <b>${echapper(l.message)}</b></div>`;
+  }).join('');
+}
+
+function echapper(s) {
+  return String(s).replace(/[&<>"']/g, c =>
+    ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+/* ---------- images ---------- */
+
+function rafraichirImages() {
+  if (ongletActif() !== 'direct') return;   /* inutile de tirer sur le tunnel */
+  const t = Date.now();
+  document.getElementById('img-color').src = '/api/image/color?t=' + t;
+  document.getElementById('img-depth').src = '/api/image/depth?t=' + t;
+}
+
+/* ---------- actions ---------- */
+
+document.getElementById('btn-start').onclick = async () => {
+  const phases = document.getElementById('phases').value.split(',');
+  const r = await envoyer({
+    cmd: 'session_start',
+    objet: document.getElementById('objet').value.trim() || 'objet',
+    nb_angles: +document.getElementById('nb-angles').value,
+    pas: +document.getElementById('pas').value,
+    phases: phases,
+    pouce_requis: document.getElementById('pouce-requis').checked,
+  });
+  if (r) toast('session démarrée : ' + r.session.split('/').pop(), true);
+};
+
+document.getElementById('btn-stop').onclick = () => envoyer({cmd: 'session_stop'});
+
+document.getElementById('btn-armer').onclick = () =>
+  envoyer({cmd: 'armer', issue: 'satisfait'});
+
+document.getElementById('btn-contourner').onclick = () => {
+  const motif = prompt("Pourquoi contourner le critère « pouce stable » ?\n"
+    + "Le motif est enregistré dans la capture — un contournement sans motif\n"
+    + "est refusé, c'est ce que le protocole existe pour empêcher.");
+  if (motif && motif.trim()) envoyer({cmd: 'armer', issue: 'contourne', motif: motif.trim()});
+  else if (motif !== null) toast('motif obligatoire');
+};
+
+document.getElementById('btn-sauter').onclick = () => {
+  const motif = prompt('Motif du saut (facultatif) :') || '';
+  envoyer({cmd: 'sauter_angle', motif: motif});
+};
+
+document.querySelectorAll('[data-valid]').forEach(b => {
+  b.onclick = () => {
+    const c = document.getElementById('commentaire');
+    envoyer({cmd: 'valider', validation: b.dataset.valid,
+             suite: b.dataset.suite, commentaire: c.value});
+    c.value = '';
+  };
+});
+
+/* ---------- onglets ---------- */
+
+document.querySelectorAll('[data-onglet]').forEach(b => {
+  b.onclick = () => {
+    document.querySelectorAll('[data-onglet]').forEach(x => x.classList.remove('actif'));
+    document.querySelectorAll('[data-vue]').forEach(x => x.classList.remove('actif'));
+    b.classList.add('actif');
+    document.querySelector(`[data-vue="${b.dataset.onglet}"]`).classList.add('actif');
+    if (b.dataset.onglet === 'dataset') listerSessions();
+    if (b.dataset.onglet === 'capture') montrerCaptureCourante();
+  };
+});
+
+function ongletActif() {
+  const b = document.querySelector('[data-onglet].actif');
+  return b ? b.dataset.onglet : 'direct';
+}
+
+/* ---------- capture en cours ---------- */
+
+async function montrerCaptureCourante() {
+  const p = etatCourant && etatCourant.protocole;
+  const el = document.getElementById('capture-courante');
+  if (!p || !p.session) {
+    el.innerHTML = '<small class="hint">Aucune session en cours.</small>';
+    return;
+  }
+  const nom = p.session.split('/').pop();
+  const r = await envoyer({cmd: 'contenu', nom: nom});
+  if (!r) return;
+  /* La derniere capture est celle qui vient d'etre faite : c'est elle qu'on
+     regarde pour decider de valider ou de refaire. */
+  const c = (r.captures || []).slice(-1)[0];
+  el.innerHTML = c ? carteCapture(nom, c, true)
+                   : '<small class="hint">Aucune capture écrite pour l\'instant.</small>';
+  brancherVignettes(el);
+}
+
+/* ---------- jeu de donnees ---------- */
+
+async function listerSessions() {
+  const r = await envoyer({cmd: 'sessions'});
+  if (!r) return;
+  const sel = document.getElementById('choix-session');
+  const avant = sel.value;
+  sel.innerHTML = (r.sessions || []).map(s =>
+    `<option value="${echapper(s.nom)}">${echapper(s.nom)} — ${s.images_sur_disque} img`
+    + `${s.complete ? '' : ' (sans manifeste)'}</option>`).join('');
+  if (avant) sel.value = avant;
+}
+
+document.getElementById('btn-charger-session').onclick = async () => {
+  const nom = document.getElementById('choix-session').value;
+  if (!nom) return;
+  const el = document.getElementById('dataset');
+  el.innerHTML = '<small class="hint">chargement…</small>';
+  const r = await envoyer({cmd: 'contenu', nom: nom});
+  if (!r) { el.innerHTML = '<small class="hint">illisible</small>'; return; }
+  const c = r.compteurs;
+  el.innerHTML = `<small class="hint">${c.captures} capture(s), ${c.valides} validée(s), `
+    + `${c.images} image(s)</small>`
+    + (r.captures || []).map(x => carteCapture(nom, x, false)).join('');
+  brancherVignettes(el);
+};
+
+function carteCapture(session, c, detaille) {
+  const a = c.angle || {};
+  const mesure = a.mesure_deg != null ? `${a.mesure_deg.toFixed(1)}°` : '—';
+  const pouce = c.pouce || {};
+  const vignettes = (c.images || []).map(ch =>
+    `<img loading="lazy" data-session="${echapper(session)}" data-chemin="${echapper(ch)}"
+          src="/api/capture?session=${encodeURIComponent(session)}&chemin=${encodeURIComponent(ch)}"
+          title="${echapper(ch)}">`).join('');
+  const etat = c.validation || 'en_attente';
+  return `<div class="capture-carte">
+    <header>
+      <span class="titre">${echapper(c.etape || '—')}</span>
+      <span class="meta">consigne ${a.consigne_deg ?? '—'}° · mesuré ${mesure}
+        ${a.ecart_deg != null ? `· écart ${a.ecart_deg}°` : ''}</span>
+      <span class="etat ${etat}">${etat}</span>
+    </header>
+    ${detaille || c.commentaire ? `<div class="meta" style="margin-top:5px">
+      pouce : ${echapper(pouce.statut || '—')}${pouce.motif ? ' — ' + echapper(pouce.motif) : ''}
+      ${c.saisie ? `· contacts : ${(c.saisie.contacts || []).join(', ') || 'aucun'}` : ''}
+      ${c.commentaire ? '<br>« ' + echapper(c.commentaire) + ' »' : ''}
+    </div>` : ''}
+    <div class="vignettes">${vignettes || '<small class="hint">pas d\'image</small>'}</div>
+  </div>`;
+}
+
+function brancherVignettes(racine) {
+  /* Cliquer agrandit dans un nouvel onglet : plus simple qu'une visionneuse,
+     et le navigateur sait deja zoomer. */
+  racine.querySelectorAll('.vignettes img').forEach(img => {
+    img.onclick = () => window.open(img.src, '_blank');
+  });
+}
+
+/* ---------- pivot du pouce ---------- */
+
+const curseurPivot = document.getElementById('pivot');
+curseurPivot.addEventListener('input', () => {
+  document.getElementById('pivot-v').textContent = curseurPivot.value;
+});
+document.getElementById('btn-pivot').onclick = async () => {
+  const r = await envoyer({cmd: 'pivot', counts: +curseurPivot.value});
+  if (r) toast(`pivot ${r.pivot} · pression pouce ${(r.pression_pouce ?? 0).toFixed(3)}`, true);
+};
+document.getElementById('btn-voir-pouce').onclick = () => chercherPouce();
+
+async function chercherPouce() {
+  const r = await envoyer({cmd: 'pouce_vu', n: 14});
+  if (!r) return;
+  dernierPouceVu = r; dernierPouceT = Date.now() / 1000;
+  rendrePouceVu(r);
+  toast(r.vu ? `carreau du pouce vu (${r.images}/${r.tentees})`
+             : 'carreau du pouce non décodé', r.vu);
+}
+document.getElementById('badge-pouce').onclick = chercherPouce;
+document.getElementById('badge-pouce').style.cursor = 'pointer';
+
+document.getElementById('btn-mesurer').onclick = async () => {
+  const r = await envoyer({cmd: 'mesurer_angle', n: 60});
+  if (r) toast(r.mesure_deg == null ? 'aucun marqueur décodé'
+                                    : `angle ${r.mesure_deg}°`, r.mesure_deg != null);
+};
+document.getElementById('btn-aller').onclick = () =>
+  envoyer({cmd: 'plateau', action: 'aller_a', angle: +document.getElementById('cible-angle').value});
+document.getElementById('btn-arreter').onclick = () =>
+  envoyer({cmd: 'plateau', action: 'arreter'});
+document.getElementById('btn-pose').onclick = async () => {
+  toast('mesure de la pose caméra…', true);
+  const r = await envoyer({cmd: 'pose', n: 14});
+  if (r) toast(r.conseil, r.utilisable);
+};
+document.getElementById('btn-selftest').onclick = async () => {
+  toast('vérification du banc en cours…', true);
+  const r = await envoyer({cmd: 'selftest'});
+  if (r) toast(r.ok ? 'banc : tout répond' : 'banc : au moins un contrôle a échoué', r.ok);
+};
+
+document.getElementById('btn-ouvrir').onclick = () => envoyer({cmd: 'ouvrir_main'});
+document.getElementById('btn-zero').onclick = async () => {
+  const r = await envoyer({cmd: 'zero', seconds: 2.0});
+  if (r) toast(`zéro fait sur ${r.trames} trames`, true);
+};
+document.getElementById('btn-reconnexion').onclick = () => envoyer({cmd: 'reconnexion'});
+
+/* ---------- reconnexions par ressource ---------- */
+
+async function reconnecter(cmd, quoi) {
+  toast(`reconnexion : ${quoi}…`, true);
+  let r = await envoyer({cmd: cmd});
+  if (r === null) {
+    /* Refusée parce qu'une acquisition tourne : on demande confirmation, la
+       session sera perdue de toute façon si le matériel est tombé. */
+    if (!confirm(`Une acquisition est peut-être en cours.\n`
+               + `Reconnecter ${quoi} la casserait. Forcer ?`)) return;
+    r = await envoyer({cmd: cmd, force: true});
+  }
+  if (r) toast(`${quoi} : reconnecté`, true);
+}
+
+document.getElementById('btn-etalonner').onclick = async () => {
+  if (!confirm("L'étalonnage déplace quelques doigts sur environ une minute.\n"
+             + 'Rien ne doit gêner la main. Continuer ?')) return;
+  toast('étalonnage en cours, la main bouge…', true);
+  const r = await envoyer({cmd: 'etalonner_cinematique'});
+  if (r) toast(`facteur mesuré : ${r.counts_par_radian} counts/rad `
+             + `(dispersion ${r.dispersion})`, true);
+};
+
+document.getElementById('btn-rc-camera').onclick = () =>
+  reconnecter('reconnecter_camera', 'la caméra');
+document.getElementById('btn-rc-serie').onclick = () =>
+  reconnecter('reconnecter_serie', "l'ESP32");
+document.getElementById('btn-rc-main').onclick = () =>
+  reconnecter('reconnecter_main', 'la main');
+
+document.getElementById('btn-sessions').onclick = async () => {
+  const r = await envoyer({cmd: 'sessions'});
+  if (!r) return;
+  document.getElementById('sessions').innerHTML = (r.sessions || []).map(s => `
+    <tr><td>${echapper(s.nom)}</td>
+        <td class="num">${s.images_sur_disque} img</td>
+        <td class="num">${(s.octets / 1048576).toFixed(0)} Mo</td>
+        <td>${s.complete ? '<span style="color:var(--ok)">manifeste</span>'
+                         : `<button data-rec="${echapper(s.nom)}">récupérer</button>`}</td>
+    </tr>`).join('') || '<tr><td>aucune session</td></tr>';
+  document.querySelectorAll('[data-rec]').forEach(b => b.onclick = async () => {
+    const rr = await envoyer({cmd: 'recuperer', nom: b.dataset.rec});
+    if (rr) { toast(`manifeste reconstruit : ${rr.compteurs.images} images`, true);
+              document.getElementById('btn-sessions').click(); }
+  });
+};
+
+['vel', 'cur', 'pwm'].forEach(id => {
+  const el = document.getElementById(id);
+  el.addEventListener('input', () => {
+    document.getElementById(id + '-v').textContent = el.value;
+  });
+});
+
+/* Le curseur de lampe ne doit pas etre repris par le flux pendant qu'on le
+   tient : sinon il saute sous le doigt a chaque rafraichissement. */
+const curseurPwm = document.getElementById('pwm');
+curseurPwm.addEventListener('pointerdown', () => { pwmEnGlissement = true; });
+curseurPwm.addEventListener('change', () => {
+  envoyer({cmd: 'lumiere', pwm: +curseurPwm.value});
+  setTimeout(() => { pwmEnGlissement = false; }, 600);
+});
+
+/* ---------- flux ---------- */
+
+function connecter() {
+  const es = new EventSource('/api/stream');
+  es.onmessage = e => { try { rendre(JSON.parse(e.data)); } catch (_) {} };
+  es.onerror = () => {
+    setDot('dot-flux', 'err');
+    es.close();
+    setTimeout(connecter, 1500);
+  };
+}
+
+batirBarres();
+connecter();
+rafraichirImages();
+setInterval(rafraichirImages, 700);
+</script>
+</body>
+</html>

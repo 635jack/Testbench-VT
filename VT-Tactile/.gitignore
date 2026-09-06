@@ -1,0 +1,7 @@
+data/*.csv
+data/*.md
+data/*.json
+__pycache__/
+*.pyc
+grasps/
+datasets/

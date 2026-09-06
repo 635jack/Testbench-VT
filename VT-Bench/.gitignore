@@ -1,0 +1,5 @@
+runs/*.json
+runs/*.md
+runs/*.npz
+__pycache__/
+*.pyc
