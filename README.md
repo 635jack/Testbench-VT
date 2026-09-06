@@ -56,8 +56,24 @@ python3 -m venv .venv && . .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-Le SDK Leadshine est fourni compilé pour **i386, x86_64 et aarch64** : Intel
-comme ARM conviennent.
+### Le SDK de la main — à obtenir séparément
+
+**Il n'est pas dans ce dépôt** : c'est un logiciel du constructeur, livré avec la
+main, et sa redistribution ne nous appartient pas. Sans lui, tout fonctionne sauf
+le pilotage de la main.
+
+Il est fourni compilé pour **i386, x86_64 et aarch64** — Intel comme ARM
+conviennent. Placez-le à côté des modules et pointez-y `PYTHONPATH` :
+
+```bash
+export PYTHONPATH="$PWD/Leadshine_SDK_original/sdk_lib/x86_64/share/LHandProLib/examples/EtherCAT_python:$PYTHONPATH"
+```
+
+`vtctl doctor` vous dira s'il est trouvé.
+
+L'URDF de la main, lui, **est** embarqué dans `VT-Control/vtctl/data/` : une copie
+plutôt qu'un chemin, pour que le modèle reste figé avec le code qui l'utilise et
+qu'une géométrie modifiée ne réécrive pas les sessions passées.
 
 Le maître EtherCAT ouvre des sockets brutes, donc il faut les privilèges :
 
@@ -109,6 +125,7 @@ pas des constantes, et les employer telles quelles donne des résultats faux
 
 ## Licence et citation
 
-Le SDK Leadshine et l'URDF de la main appartiennent à leur constructeur et sont
-redistribués tels quels. Le reste est publié pour accompagner un mémoire de
-master ; si ce banc vous sert, une mention fait plaisir.
+Le SDK Leadshine appartient à son constructeur et **n'est pas redistribué ici**.
+L'URDF de la main est embarqué sous `VT-Control/vtctl/data/`, tel que fourni.
+Le reste est publié pour accompagner un mémoire de master ; si ce banc vous sert,
+une mention fait plaisir.
