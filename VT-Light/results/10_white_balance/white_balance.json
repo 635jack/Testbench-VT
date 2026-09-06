@@ -1,0 +1,17 @@
+{
+  "chosen_k": 5180,
+  "per_pwm": {
+    "255": {
+      "coarse_k": 5200,
+      "fine_k": 5210
+    },
+    "128": {
+      "coarse_k": 5100,
+      "fine_k": 5140
+    }
+  },
+  "spread_k": 70,
+  "exposure_us": 4000,
+  "gain": 16,
+  "n_white_px": 272
+}

@@ -1,0 +1,13 @@
+{
+  "object": "pla_argent",
+  "level": "haut",
+  "pwm": 200,
+  "exposure_us": 2200,
+  "n_frames": 1025,
+  "turntable_moved": true,
+  "motion_median": 1.666796875,
+  "max_sat_frac": 0.0,
+  "max_p99_9": 218.0,
+  "ok": true,
+  "worst_headroom_ev": 0.22616911208193155
+}

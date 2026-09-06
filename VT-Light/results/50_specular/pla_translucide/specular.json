@@ -1,0 +1,13 @@
+{
+  "object": "pla_translucide",
+  "level": "haut",
+  "pwm": 200,
+  "exposure_us": 2200,
+  "n_frames": 993,
+  "turntable_moved": true,
+  "motion_median": 1.6301996527777778,
+  "max_sat_frac": 2.604166666666667e-05,
+  "max_p99_9": 236.0,
+  "ok": true,
+  "worst_headroom_ev": 0.11171038749701669
+}

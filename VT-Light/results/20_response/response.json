@@ -1,0 +1,351 @@
+{
+  "oecf": {
+    "values": [
+      18.23879051208496,
+      32.01268005371094,
+      48.354557037353516,
+      58.96165466308594,
+      69.67332458496094,
+      77.20036315917969,
+      91.95933532714844,
+      97.67208099365234,
+      113.7203140258789,
+      123.65392303466797,
+      136.9359130859375,
+      154.08282470703125,
+      174.08782958984375,
+      197.0912322998047,
+      227.07249450683594
+    ],
+    "equivalent_exposures_us": [
+      200.0,
+      400.0,
+      600.0,
+      800.0,
+      1000.0,
+      1200.0,
+      1600.0,
+      1800.0,
+      2400.0,
+      2800.0,
+      3400.0,
+      4200.0,
+      5200.0,
+      6400.0,
+      7800.0
+    ],
+    "value_range": [
+      18.23879051208496,
+      227.07249450683594
+    ],
+    "gamma_estimate": 0.6531827498351159
+  },
+  "oecf_pwm": 128,
+  "white_balance_k": 5180,
+  "gain": 16,
+  "probe_exposures_us": [
+    2000,
+    6000
+  ],
+  "cross_check": {
+    "n_common_pwm": 28,
+    "median_ratio": 1.006034263668421,
+    "max_ev_deviation": 0.147175271732337
+  },
+  "illuminance_curve": [
+    {
+      "pwm": 15,
+      "illuminance_rel": 0.06412300150515729,
+      "illuminance_norm": 0.037202832695226236,
+      "ev_below_max": 4.748443714684265
+    },
+    {
+      "pwm": 20,
+      "illuminance_rel": 0.09553932135466509,
+      "illuminance_norm": 0.05542992849277637,
+      "ev_below_max": 4.173191043293324
+    },
+    {
+      "pwm": 25,
+      "illuminance_rel": 0.12692510762860312,
+      "illuminance_norm": 0.07363930934441248,
+      "ev_below_max": 3.763380093913408
+    },
+    {
+      "pwm": 30,
+      "illuminance_rel": 0.16474936127826914,
+      "illuminance_norm": 0.09558415514576116,
+      "ev_below_max": 3.3870847053260866
+    },
+    {
+      "pwm": 35,
+      "illuminance_rel": 0.2088867443213353,
+      "illuminance_norm": 0.12119174740458953,
+      "ev_below_max": 3.0446366335668853
+    },
+    {
+      "pwm": 40,
+      "illuminance_rel": 0.2438110365111939,
+      "illuminance_norm": 0.14145409584181928,
+      "ev_below_max": 2.821594143921093
+    },
+    {
+      "pwm": 45,
+      "illuminance_rel": 0.2853715380546708,
+      "illuminance_norm": 0.16556663501432367,
+      "ev_below_max": 2.5945161246417987
+    },
+    {
+      "pwm": 50,
+      "illuminance_rel": 0.32663323492592333,
+      "illuminance_norm": 0.1895058139265723,
+      "ev_below_max": 2.399685984779294
+    },
+    {
+      "pwm": 55,
+      "illuminance_rel": 0.3692760239281827,
+      "illuminance_norm": 0.21424627378763003,
+      "ev_below_max": 2.2226579819608148
+    },
+    {
+      "pwm": 60,
+      "illuminance_rel": 0.4154402231883426,
+      "illuminance_norm": 0.24102978268882652,
+      "ev_below_max": 2.052716671740219
+    },
+    {
+      "pwm": 65,
+      "illuminance_rel": 0.4541549100849851,
+      "illuminance_norm": 0.26349123935267305,
+      "ev_below_max": 1.9241730994482622
+    },
+    {
+      "pwm": 70,
+      "illuminance_rel": 0.4935829004083491,
+      "illuminance_norm": 0.28636653983889776,
+      "ev_below_max": 1.8040651624408126
+    },
+    {
+      "pwm": 75,
+      "illuminance_rel": 0.5402423367783159,
+      "illuminance_norm": 0.3134373750178439,
+      "ev_below_max": 1.673750874432487
+    },
+    {
+      "pwm": 80,
+      "illuminance_rel": 0.5840794202729725,
+      "illuminance_norm": 0.33887073972032444,
+      "ev_below_max": 1.5611930242585208
+    },
+    {
+      "pwm": 85,
+      "illuminance_rel": 0.6299229876642789,
+      "illuminance_norm": 0.36546822467545287,
+      "ev_below_max": 1.4521821171527152
+    },
+    {
+      "pwm": 90,
+      "illuminance_rel": 0.6713998862689118,
+      "illuminance_norm": 0.38953225916050294,
+      "ev_below_max": 1.3601852846910099
+    },
+    {
+      "pwm": 95,
+      "illuminance_rel": 0.7128968607422695,
+      "illuminance_norm": 0.413607941247316,
+      "ev_below_max": 1.2736642093115562
+    },
+    {
+      "pwm": 100,
+      "illuminance_rel": 0.755185214180087,
+      "illuminance_norm": 0.43814276496072535,
+      "ev_below_max": 1.190527058985449
+    },
+    {
+      "pwm": 105,
+      "illuminance_rel": 0.7997809873748072,
+      "illuminance_norm": 0.4640163056580365,
+      "ev_below_max": 1.107752591951193
+    },
+    {
+      "pwm": 110,
+      "illuminance_rel": 0.8452490920772682,
+      "illuminance_norm": 0.4903959549649804,
+      "ev_below_max": 1.0279810158913576
+    },
+    {
+      "pwm": 115,
+      "illuminance_rel": 0.8909736079864969,
+      "illuminance_norm": 0.5169243687246581,
+      "ev_below_max": 0.951974879816479
+    },
+    {
+      "pwm": 120,
+      "illuminance_rel": 0.9339150243451633,
+      "illuminance_norm": 0.5418380859710198,
+      "ev_below_max": 0.88406629029101
+    },
+    {
+      "pwm": 125,
+      "illuminance_rel": 0.9790666844507944,
+      "illuminance_norm": 0.5680341407000925,
+      "ev_below_max": 0.8159504518853894
+    },
+    {
+      "pwm": 130,
+      "illuminance_rel": 1.0240008075020008,
+      "illuminance_norm": 0.594103984951633,
+      "ev_below_max": 0.7512126294429015
+    },
+    {
+      "pwm": 135,
+      "illuminance_rel": 1.0710016784267697,
+      "illuminance_norm": 0.6213729133626567,
+      "ev_below_max": 0.6864687414370843
+    },
+    {
+      "pwm": 140,
+      "illuminance_rel": 1.1150921129420899,
+      "illuminance_norm": 0.6469532670614984,
+      "ev_below_max": 0.6282665925825154
+    },
+    {
+      "pwm": 145,
+      "illuminance_rel": 1.1592279656516793,
+      "illuminance_norm": 0.6725599714526511,
+      "ev_below_max": 0.5722651779099235
+    },
+    {
+      "pwm": 150,
+      "illuminance_rel": 1.2019255970142622,
+      "illuminance_norm": 0.6973322497112859,
+      "ev_below_max": 0.5200818910158936
+    },
+    {
+      "pwm": 155,
+      "illuminance_rel": 1.2467270050005193,
+      "illuminance_norm": 0.723325095440587,
+      "ev_below_max": 0.4672838886984379
+    },
+    {
+      "pwm": 160,
+      "illuminance_rel": 1.2900795076430402,
+      "illuminance_norm": 0.7484773164045315,
+      "ev_below_max": 0.41796950072335215
+    },
+    {
+      "pwm": 165,
+      "illuminance_rel": 1.340861794238742,
+      "illuminance_norm": 0.7779401435921979,
+      "ev_below_max": 0.3622689395020771
+    },
+    {
+      "pwm": 170,
+      "illuminance_rel": 1.3848907015183511,
+      "illuminance_norm": 0.8034848004677059,
+      "ev_below_max": 0.31565736220948504
+    },
+    {
+      "pwm": 175,
+      "illuminance_rel": 1.4265597508697625,
+      "illuminance_norm": 0.8276603168222391,
+      "ev_below_max": 0.27288930758039437
+    },
+    {
+      "pwm": 180,
+      "illuminance_rel": 1.4686215056772738,
+      "illuminance_norm": 0.8520636727201318,
+      "ev_below_max": 0.23096685119066715
+    },
+    {
+      "pwm": 185,
+      "illuminance_rel": 1.5170624001586577,
+      "illuminance_norm": 0.8801680728682298,
+      "ev_below_max": 0.1841490543865242
+    },
+    {
+      "pwm": 190,
+      "illuminance_rel": 1.5625351392621993,
+      "illuminance_norm": 0.9065504109583561,
+      "ev_below_max": 0.14154084809223688
+    },
+    {
+      "pwm": 195,
+      "illuminance_rel": 1.5881870067911525,
+      "illuminance_norm": 0.921433091331997,
+      "ev_below_max": 0.11804868465599942
+    },
+    {
+      "pwm": 200,
+      "illuminance_rel": 1.6512599312430885,
+      "illuminance_norm": 0.9580266911464925,
+      "ev_below_max": 0.06186224409473787
+    },
+    {
+      "pwm": 205,
+      "illuminance_rel": 1.6587955536791066,
+      "illuminance_norm": 0.9623987026581343,
+      "ev_below_max": 0.0552933971675723
+    },
+    {
+      "pwm": 210,
+      "illuminance_rel": 1.66640533641985,
+      "illuminance_norm": 0.9668137404371773,
+      "ev_below_max": 0.04869011793642188
+    },
+    {
+      "pwm": 215,
+      "illuminance_rel": 1.675353708327514,
+      "illuminance_norm": 0.9720053998286784,
+      "ev_below_max": 0.04096376636040387
+    },
+    {
+      "pwm": 220,
+      "illuminance_rel": 1.681141340633385,
+      "illuminance_norm": 0.9753632637982789,
+      "ev_below_max": 0.03598845933346549
+    },
+    {
+      "pwm": 225,
+      "illuminance_rel": 1.6872996950044972,
+      "illuminance_norm": 0.9789362130047812,
+      "ev_below_max": 0.030713237284916803
+    },
+    {
+      "pwm": 230,
+      "illuminance_rel": 1.696674728047175,
+      "illuminance_norm": 0.9843754123187889,
+      "ev_below_max": 0.02271947220787028
+    },
+    {
+      "pwm": 235,
+      "illuminance_rel": 1.7038470940752894,
+      "illuminance_norm": 0.9885366700127445,
+      "ev_below_max": 0.016633610810181356
+    },
+    {
+      "pwm": 240,
+      "illuminance_rel": 1.709174890873434,
+      "illuminance_norm": 0.9916277469783104,
+      "ev_below_max": 0.012129454495449865
+    },
+    {
+      "pwm": 245,
+      "illuminance_rel": 1.7124614159309242,
+      "illuminance_norm": 0.993534520507192,
+      "ev_below_max": 0.009357999884157127
+    },
+    {
+      "pwm": 250,
+      "illuminance_rel": 1.7193705767315657,
+      "illuminance_norm": 0.9975430719988125,
+      "ev_below_max": 0.0035489593994657946
+    },
+    {
+      "pwm": 255,
+      "illuminance_rel": 1.7236053509813885,
+      "illuminance_norm": 1.0,
+      "ev_below_max": -0.0
+    }
+  ]
+}

@@ -1,0 +1,11 @@
+__pycache__/
+*.py[cod]
+.DS_Store
+.venv/
+venv/
+
+# Les CSV, JSON et aperçus de results/ sont versionnés : ce sont les mesures qui
+# justifient le profil. Seules les captures volumineuses de profondeur brute
+# n'ont pas à l'être.
+results/**/*_depth_raw.png
+results/**/*.npy
