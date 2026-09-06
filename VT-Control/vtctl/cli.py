@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import logging
 import signal
 import sys
@@ -108,6 +109,153 @@ def cmd_selftest(a) -> int:
     if a.json:
         print(json.dumps(r, indent=2, ensure_ascii=False, default=str))
     return 0 if r["ok"] else 1
+
+
+
+# ── doctor ────────────────────────────────────────────────────────────────────
+
+def cmd_doctor(a) -> int:
+    """
+    L'environnement est-il complet ? Et sinon, **que faire** ?
+
+    Écrit pour la personne qui déballe le matériel sans connaître le projet.
+    Chaque échec dit le geste qui le corrige : beaucoup de temps a été perdu sur
+    des diagnostics que ces quelques dizaines de lignes rendent immédiats — le
+    nœud ``/dev/video0`` qui est la caméra de profondeur et non la webcam,
+    l'interface EtherCAT qui arrive éteinte, un service du constructeur qui
+    tient le bus sans poser le moindre verrou.
+
+    Ne touche à rien : aucune ouverture de matériel, aucun mouvement.
+    """
+    import importlib.util  # noqa: PLC0415
+    import platform  # noqa: PLC0415
+    import shutil  # noqa: PLC0415
+    from pathlib import Path as _P  # noqa: PLC0415
+
+    lignes = []
+    etat = {"echecs": 0, "avertis": 0}
+
+    def dire(ok, nom, detail, remede=""):
+        if ok is True:
+            marque = f"{G}✓{N}"
+        elif ok is None:
+            marque = f"{J}!{N}"
+            etat["avertis"] += 1
+        else:
+            marque = f"{R}✗{N}"
+            etat["echecs"] += 1
+        lignes.append(f"  {marque} {nom:<26} {detail}")
+        if ok is not True and remede:
+            lignes.append(f"      {D}→ {remede}{N}")
+
+    print(f"\n{G}Environnement du banc visuo-tactile{N}\n")
+
+    dire(sys.version_info >= (3, 10), "Python",
+         f"{platform.python_version()} sur {platform.machine()}",
+         "3.10 ou plus récent est nécessaire")
+    for module, paquet in (("numpy", "numpy"), ("cv2", "opencv-python"),
+                           ("pyrealsense2", "pyrealsense2"), ("serial", "pyserial")):
+        present = importlib.util.find_spec(module) is not None
+        dire(present, module, "présent" if present else "absent",
+             f"pip install {paquet}")
+
+    for nom, chemin in (("VT-Tactile", config.VT_TACTILE),
+                        ("VT-Light", config.VT_LIGHT),
+                        ("Control_Turtable_IR", config.TURNTABLE)):
+        dire(chemin.is_dir(), nom,
+             str(chemin) if chemin.is_dir() else "introuvable",
+             "les modules doivent rester frères : un seul clone, sans les déplacer")
+
+    for nom, chemin in (("config ArUco", config.CONFIG_ARUCO),
+                        ("config télécommande", config.CONFIG_TELECOMMANDE),
+                        ("profil de lumière", config.LIGHT_PROFILE)):
+        ok = chemin.exists()
+        dire(ok or None, nom, "présent" if ok else "absent",
+             "" if ok else "à réétalonner sur cet exemplaire ; les valeurs d'un "
+                           "autre banc donnent des résultats faux en silence")
+
+    sdk = importlib.util.find_spec("lhandprolib_wrapper") is not None
+    dire(sdk or None, "SDK Leadshine", "importable" if sdk else "non importable",
+         "fourni compilé en i386, x86_64 et aarch64 ; vérifier PYTHONPATH")
+
+    if platform.system() != "Linux":
+        dire(None, "système", platform.system(),
+             "le banc veut Linux : pyrealsense2 n'a pas de roue macOS arm64 et "
+             "le maître EtherCAT veut des sockets brutes")
+        print("\n".join(lignes))
+        manque = (f"{R}{etat['echecs']} point(s) bloquant(s){N}, "
+                  if etat["echecs"] else "")
+        print(f"\n  {manque}{J}contrôles matériels sautés hors Linux.{N}\n")
+        return 1 if etat["echecs"] else 0
+
+    # Le nœud v4l2 se cherche par NOM. /dev/video0 est la caméra de profondeur
+    # dès qu'elle est branchée : elle expose six nœuds, la webcam vient après.
+    # Une numérotation qui dépend de l'ordre de branchement est un piège muet.
+    noeuds = {}
+    base = _P("/sys/class/video4linux")
+    if base.is_dir():
+        for e in sorted(base.iterdir()):
+            try:
+                noeuds[e.name] = (e / "name").read_text(encoding="utf-8").strip()
+            except OSError:
+                continue
+    prof = [k for k, v in noeuds.items() if "RealSense" in v]
+    cam = [k for k, v in noeuds.items() if "C920" in v or "Webcam" in v]
+    dire(bool(prof), "caméra de profondeur",
+         f"/dev/{prof[0]}" if prof else "absente",
+         "la brancher, et de préférence sur le concentrateur")
+    dire(bool(cam) or None, "webcam d'angle",
+         f"/dev/{cam[0]}" if cam else "absente",
+         "facultative : sans elle l'angle du plateau retombe sur la caméra de "
+         "profondeur, qui voit les carreaux de trop biais")
+
+    serie = sorted(_P("/dev").glob("ttyACM*")) + sorted(_P("/dev").glob("ttyUSB*"))
+    dire(bool(serie), "port série (lampe, plateau)",
+         str(serie[0]) if serie else "aucun",
+         "brancher l'ESP32 ; vérifier l'appartenance au groupe dialout")
+
+    reseau = _P("/sys/class/net")
+    enx = [e for e in reseau.iterdir() if e.name.startswith("enx")] if reseau.is_dir() else []
+    if not enx:
+        dire(False, "lien EtherCAT", "aucune interface enx",
+             "brancher l'adaptateur USB↔Ethernet")
+    else:
+        iface = enx[0].name
+        try:
+            porteuse = (enx[0] / "carrier").read_text().strip() == "1"
+        except OSError:
+            porteuse = False
+        dire(porteuse, "lien EtherCAT",
+             f"{iface} — {'porteuse' if porteuse else 'sans porteuse'}",
+             f"sudo ip link set {iface} up ; puis vérifier l'alimentation de la "
+             f"main — une porteuse suppose le PHY d'en face allumé")
+
+    if shutil.which("pgrep"):
+        import subprocess  # noqa: PLC0415
+
+        r = subprocess.run(["pgrep", "-af", "lhandpro"],
+                           capture_output=True, text=True, check=False)
+        occupe = [x for x in r.stdout.splitlines() if "pgrep" not in x]
+        dire(not occupe or None, "bus EtherCAT libre",
+             "libre" if not occupe else f"{len(occupe)} processus le tiennent",
+             "" if not occupe else "c'est le travail de quelqu'un : le lui "
+                                   "demander avant d'arrêter quoi que ce soit")
+
+    raw = os.geteuid() == 0
+    dire(raw or None, "privilèges sockets brutes",
+         "root" if raw else "utilisateur ordinaire",
+         "setcap cap_net_raw,cap_net_admin+eip sur le python du venv, "
+         "ou lancer sous sudo")
+
+    print("\n".join(lignes))
+    if etat["echecs"]:
+        suite = f", {J}{etat['avertis']} à surveiller{N}" if etat["avertis"] else ""
+        print(f"\n  {R}{etat['echecs']} point(s) bloquant(s){N}{suite}\n")
+    elif etat["avertis"]:
+        print(f"\n  {J}Rien de bloquant, {etat['avertis']} point(s) à surveiller.{N}\n")
+    else:
+        print(f"\n  {G}Tout est en place.{N}\n")
+    return 1 if etat["echecs"] else 0
 
 
 # ── angle ─────────────────────────────────────────────────────────────────────
@@ -604,6 +752,9 @@ def build_parser() -> argparse.ArgumentParser:
                     help="dossier des sessions (défaut : ./sessions)")
     ap.add_argument("--log", default="info", help="debug, info, warning")
     sub = ap.add_subparsers(dest="commande", required=True)
+
+    p = sub.add_parser("doctor", help="l'environnement est-il complet ? ne touche à rien")
+    p.set_defaults(fn=cmd_doctor)
 
     p = sub.add_parser("selftest", help="le banc répond-il ? aucune acquisition")
     p.add_argument("--json", action="store_true")
