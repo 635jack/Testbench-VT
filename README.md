@@ -93,6 +93,12 @@ réel. À ne choisir que si l'hôte ne peut pas être un Linux.
 
 ---
 
+## Vous recevez le matériel ?
+
+Lisez **[PRISE-EN-MAIN.md](PRISE-EN-MAIN.md)** : du carton au jeu de données,
+avec le remontage, les quatre étalonnages obligatoires, le catalogue des pannes
+et ce qui reste ouvert.
+
 ## Premiers pas
 
 ```bash
