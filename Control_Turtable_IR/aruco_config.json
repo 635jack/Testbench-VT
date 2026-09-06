@@ -1,0 +1,18 @@
+{
+    "marker_angles": {
+        "1": 0.0,
+        "2": 121.7,
+        "3": 234.6,
+        "4": 345.9,
+        "5": 119.3,
+        "6": 240.1
+    },
+    "dictionary": "DICT_4X4_50",
+    "turntable_center": [
+        349.78498590055597,
+        366.53809078156
+    ],
+    "invert_colors": true,
+    "adaptive_thresh_constant": 11,
+    "adaptive_thresh_winsize_min": 5
+}
