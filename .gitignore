@@ -11,6 +11,8 @@
 !/VT-Control/
 !/VT-Tactile/
 !/VT-Bench/
+!/VT-Light/
+!/Control_Turtable_IR/
 
 # ── Secrets ───────────────────────────────────────────────────────────────────
 # Le dépôt est public : rien de ce qui suit ne doit y entrer. Le mot de passe
